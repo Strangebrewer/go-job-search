@@ -1,4 +1,4 @@
-module github.com/Strangebrewer/go-service-template
+module github.com/Strangebrewer/go-job-search
 
 go 1.25.7
 

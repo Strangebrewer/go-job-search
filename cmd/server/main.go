@@ -10,12 +10,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Strangebrewer/go-service-template/app"
-	"github.com/Strangebrewer/go-service-template/config"
-	"github.com/Strangebrewer/go-service-template/db_connection"
-	"github.com/Strangebrewer/go-service-template/example"
-	"github.com/Strangebrewer/go-service-template/middleware"
-	"github.com/Strangebrewer/go-service-template/server"
+	"github.com/Strangebrewer/go-job-search/app"
+	"github.com/Strangebrewer/go-job-search/config"
+	"github.com/Strangebrewer/go-job-search/db_connection"
+	"github.com/Strangebrewer/go-job-search/example"
+	"github.com/Strangebrewer/go-job-search/middleware"
+	"github.com/Strangebrewer/go-job-search/server"
 )
 
 func main() {

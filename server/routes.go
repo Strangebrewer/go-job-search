@@ -3,9 +3,9 @@ package server
 import (
 	"net/http"
 
-	"github.com/Strangebrewer/go-service-template/app"
-	"github.com/Strangebrewer/go-service-template/example"
-	"github.com/Strangebrewer/go-service-template/health"
+	"github.com/Strangebrewer/go-job-search/app"
+	"github.com/Strangebrewer/go-job-search/example"
+	"github.com/Strangebrewer/go-job-search/health"
 	"github.com/go-chi/chi/v5"
 )
 
