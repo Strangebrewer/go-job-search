@@ -20,17 +20,17 @@ RETURNING id, user_id, name, company, phone, email, rating, comments, archived, 
 `
 
 type CreateRecruiterParams struct {
-	ID        uuid.UUID
-	UserID    uuid.UUID
-	Name      string
-	Company   string
-	Phone     string
-	Email     string
-	Rating    int32
-	Comments  []string
-	Archived  bool
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID        uuid.UUID `json:"id"`
+	UserID    uuid.UUID `json:"userId"`
+	Name      string    `json:"name"`
+	Company   string    `json:"company"`
+	Phone     string    `json:"phone"`
+	Email     string    `json:"email"`
+	Rating    int32     `json:"rating"`
+	Comments  []string  `json:"comments"`
+	Archived  bool      `json:"archived"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 func (q *Queries) CreateRecruiter(ctx context.Context, arg CreateRecruiterParams) (Recruiter, error) {
@@ -69,8 +69,8 @@ DELETE FROM recruiters WHERE id = $1 AND user_id = $2
 `
 
 type DeleteRecruiterParams struct {
-	ID     uuid.UUID
-	UserID uuid.UUID
+	ID     uuid.UUID `json:"id"`
+	UserID uuid.UUID `json:"userId"`
 }
 
 func (q *Queries) DeleteRecruiter(ctx context.Context, arg DeleteRecruiterParams) (pgconn.CommandTag, error) {
@@ -82,8 +82,8 @@ SELECT id, user_id, name, company, phone, email, rating, comments, archived, cre
 `
 
 type GetRecruiterByIDParams struct {
-	ID     uuid.UUID
-	UserID uuid.UUID
+	ID     uuid.UUID `json:"id"`
+	UserID uuid.UUID `json:"userId"`
 }
 
 func (q *Queries) GetRecruiterByID(ctx context.Context, arg GetRecruiterByIDParams) (Recruiter, error) {
@@ -149,16 +149,16 @@ RETURNING id, user_id, name, company, phone, email, rating, comments, archived, 
 `
 
 type UpdateRecruiterParams struct {
-	ID        uuid.UUID
-	UserID    uuid.UUID
-	Name      string
-	Company   string
-	Phone     string
-	Email     string
-	Rating    int32
-	Comments  []string
-	Archived  bool
-	UpdatedAt time.Time
+	ID        uuid.UUID `json:"id"`
+	UserID    uuid.UUID `json:"userId"`
+	Name      string    `json:"name"`
+	Company   string    `json:"company"`
+	Phone     string    `json:"phone"`
+	Email     string    `json:"email"`
+	Rating    int32     `json:"rating"`
+	Comments  []string  `json:"comments"`
+	Archived  bool      `json:"archived"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 func (q *Queries) UpdateRecruiter(ctx context.Context, arg UpdateRecruiterParams) (Recruiter, error) {

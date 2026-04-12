@@ -40,12 +40,13 @@ job/
   job_store.go
   job_handler.go
   job_routes.go
+  job_test.go
 recruiter/
   recruiter_model.go
   recruiter_store.go
   recruiter_handler.go
   recruiter_routes.go
-example/             ← template reference domain, leave until real domains are built
+  recruiter_test.go
 ```
 
 ---
@@ -101,7 +102,9 @@ Copy `.env.example` to `.env.local` for local dev. Never commit `.env.local`.
 
 ## Current State
 
-- Module renamed to `github.com/Strangebrewer/go-job-search`, all import paths updated
-- `.env.example` updated with `job_search` schema name
-- Ground zero committed to `main` — template boilerplate intact, no domain code written yet
-- **Next**: write `db/schema.sql` and migrations, then `job/` and `recruiter/` domains
+- `job/` and `recruiter/` domains complete — schema, migrations, sqlc queries, handlers, integration tests
+- Schema: `recruiters` and `jobs` tables — `text[]` for interviews/comments, `date_applied` as `text` (frontend handles formatting), FK from jobs → recruiters (RESTRICT on delete — returns 409 if recruiter has jobs)
+- All list/get/update/delete queries scoped to `user_id` from JWT context
+- `ListJobs` supports filters: `company`, `recruiter`, `status`, `workFrom`, `dateMin`, `dateMax`, `archived`, `includeDeclined`; sort by `jobTitle`, `companyName`, `dateApplied`, `workFrom`, `status` (application-layer sort after DB fetch)
+- Deployed to dev and verified working
+- Cloud Run dev URL: `https://go-job-search-dev-iwpkmztv2a-uc.a.run.app`

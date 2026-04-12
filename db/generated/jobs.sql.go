@@ -27,28 +27,28 @@ RETURNING id, user_id, recruiter_id, job_title, work_from, date_applied, company
 `
 
 type CreateJobParams struct {
-	ID                uuid.UUID
-	UserID            uuid.UUID
-	RecruiterID       uuid.UUID
-	JobTitle          string
-	WorkFrom          string
-	DateApplied       string
-	CompanyName       string
-	CompanyAddress    string
-	CompanyCity       string
-	CompanyState      string
-	PointOfContact    string
-	PocTitle          string
-	Interviews        []string
-	Comments          []string
-	Status            string
-	Archived          bool
-	PrimaryLink       string
-	PrimaryLinkText   string
-	SecondaryLink     string
-	SecondaryLinkText string
-	CreatedAt         time.Time
-	UpdatedAt         time.Time
+	ID                uuid.UUID `json:"id"`
+	UserID            uuid.UUID `json:"userId"`
+	RecruiterID       uuid.UUID `json:"recruiterId"`
+	JobTitle          string    `json:"jobTitle"`
+	WorkFrom          string    `json:"workFrom"`
+	DateApplied       string    `json:"dateApplied"`
+	CompanyName       string    `json:"companyName"`
+	CompanyAddress    string    `json:"companyAddress"`
+	CompanyCity       string    `json:"companyCity"`
+	CompanyState      string    `json:"companyState"`
+	PointOfContact    string    `json:"pointOfContact"`
+	PocTitle          string    `json:"pocTitle"`
+	Interviews        []string  `json:"interviews"`
+	Comments          []string  `json:"comments"`
+	Status            string    `json:"status"`
+	Archived          bool      `json:"archived"`
+	PrimaryLink       string    `json:"primaryLink"`
+	PrimaryLinkText   string    `json:"primaryLinkText"`
+	SecondaryLink     string    `json:"secondaryLink"`
+	SecondaryLinkText string    `json:"secondaryLinkText"`
+	CreatedAt         time.Time `json:"createdAt"`
+	UpdatedAt         time.Time `json:"updatedAt"`
 }
 
 func (q *Queries) CreateJob(ctx context.Context, arg CreateJobParams) (Job, error) {
@@ -109,8 +109,8 @@ DELETE FROM jobs WHERE id = $1 AND user_id = $2
 `
 
 type DeleteJobParams struct {
-	ID     uuid.UUID
-	UserID uuid.UUID
+	ID     uuid.UUID `json:"id"`
+	UserID uuid.UUID `json:"userId"`
 }
 
 func (q *Queries) DeleteJob(ctx context.Context, arg DeleteJobParams) (pgconn.CommandTag, error) {
@@ -122,8 +122,8 @@ SELECT id, user_id, recruiter_id, job_title, work_from, date_applied, company_na
 `
 
 type GetJobByIDParams struct {
-	ID     uuid.UUID
-	UserID uuid.UUID
+	ID     uuid.UUID `json:"id"`
+	UserID uuid.UUID `json:"userId"`
 }
 
 func (q *Queries) GetJobByID(ctx context.Context, arg GetJobByIDParams) (Job, error) {
@@ -171,15 +171,15 @@ ORDER BY created_at DESC
 `
 
 type ListJobsParams struct {
-	UserID          uuid.UUID
-	Company         pgtype.Text
-	RecruiterID     pgtype.UUID
-	Status          pgtype.Text
-	WorkFrom        pgtype.Text
-	DateMin         pgtype.Text
-	DateMax         pgtype.Text
-	IncludeArchived bool
-	IncludeDeclined bool
+	UserID          uuid.UUID   `json:"userId"`
+	Company         pgtype.Text `json:"company"`
+	RecruiterID     pgtype.UUID `json:"recruiterId"`
+	Status          pgtype.Text `json:"status"`
+	WorkFrom        pgtype.Text `json:"workFrom"`
+	DateMin         pgtype.Text `json:"dateMin"`
+	DateMax         pgtype.Text `json:"dateMax"`
+	IncludeArchived bool        `json:"includeArchived"`
+	IncludeDeclined bool        `json:"includeDeclined"`
 }
 
 func (q *Queries) ListJobs(ctx context.Context, arg ListJobsParams) ([]Job, error) {
@@ -247,27 +247,27 @@ RETURNING id, user_id, recruiter_id, job_title, work_from, date_applied, company
 `
 
 type UpdateJobParams struct {
-	ID                uuid.UUID
-	UserID            uuid.UUID
-	RecruiterID       uuid.UUID
-	JobTitle          string
-	WorkFrom          string
-	DateApplied       string
-	CompanyName       string
-	CompanyAddress    string
-	CompanyCity       string
-	CompanyState      string
-	PointOfContact    string
-	PocTitle          string
-	Interviews        []string
-	Comments          []string
-	Status            string
-	Archived          bool
-	PrimaryLink       string
-	PrimaryLinkText   string
-	SecondaryLink     string
-	SecondaryLinkText string
-	UpdatedAt         time.Time
+	ID                uuid.UUID `json:"id"`
+	UserID            uuid.UUID `json:"userId"`
+	RecruiterID       uuid.UUID `json:"recruiterId"`
+	JobTitle          string    `json:"jobTitle"`
+	WorkFrom          string    `json:"workFrom"`
+	DateApplied       string    `json:"dateApplied"`
+	CompanyName       string    `json:"companyName"`
+	CompanyAddress    string    `json:"companyAddress"`
+	CompanyCity       string    `json:"companyCity"`
+	CompanyState      string    `json:"companyState"`
+	PointOfContact    string    `json:"pointOfContact"`
+	PocTitle          string    `json:"pocTitle"`
+	Interviews        []string  `json:"interviews"`
+	Comments          []string  `json:"comments"`
+	Status            string    `json:"status"`
+	Archived          bool      `json:"archived"`
+	PrimaryLink       string    `json:"primaryLink"`
+	PrimaryLinkText   string    `json:"primaryLinkText"`
+	SecondaryLink     string    `json:"secondaryLink"`
+	SecondaryLinkText string    `json:"secondaryLinkText"`
+	UpdatedAt         time.Time `json:"updatedAt"`
 }
 
 func (q *Queries) UpdateJob(ctx context.Context, arg UpdateJobParams) (Job, error) {
