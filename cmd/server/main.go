@@ -13,8 +13,9 @@ import (
 	"github.com/Strangebrewer/go-job-search/app"
 	"github.com/Strangebrewer/go-job-search/config"
 	"github.com/Strangebrewer/go-job-search/db_connection"
-	"github.com/Strangebrewer/go-job-search/example"
+	"github.com/Strangebrewer/go-job-search/job"
 	"github.com/Strangebrewer/go-job-search/middleware"
+	"github.com/Strangebrewer/go-job-search/recruiter"
 	"github.com/Strangebrewer/go-job-search/server"
 )
 
@@ -38,7 +39,8 @@ func main() {
 	}
 
 	application := &app.Application{
-		ExampleStore: example.NewStore(pool),
+		JobStore:       job.NewStore(pool),
+		RecruiterStore: recruiter.NewStore(pool),
 	}
 
 	port := cfg.Port
