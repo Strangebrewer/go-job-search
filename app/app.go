@@ -1,7 +1,11 @@
 package app
 
-import "github.com/Strangebrewer/go-job-search/example"
+import (
+	"github.com/Strangebrewer/go-job-search/job"
+	"github.com/Strangebrewer/go-job-search/recruiter"
+)
 
 type Application struct {
-	ExampleStore *example.Store
+	JobStore       *job.Store
+	RecruiterStore *recruiter.Store
 }
