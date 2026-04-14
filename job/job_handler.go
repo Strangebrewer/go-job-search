@@ -5,19 +5,22 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 
 	"github.com/Strangebrewer/go-job-search/middleware"
+	"github.com/Strangebrewer/go-job-search/tracer"
 )
 
 type Handler struct {
-	store *Store
+	store  *Store
+	tracer *tracer.Client
 }
 
-func NewHandler(store *Store) *Handler {
-	return &Handler{store: store}
+func NewHandler(store *Store, tc *tracer.Client) *Handler {
+	return &Handler{store: store, tracer: tc}
 }
 
 func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
@@ -26,6 +29,8 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
+
+	traceID := r.Header.Get("X-Trace-ID")
 
 	f := JobFilter{
 		Company:         r.URL.Query().Get("company"),
@@ -40,15 +45,57 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 		SortDir:         r.URL.Query().Get("sortDir"),
 	}
 
+	start := time.Now()
 	jobs, err := h.store.List(r.Context(), userID, f)
+	end := time.Now()
+
 	if err != nil {
 		if errors.Is(err, ErrInvalidRecruiter) {
+			if h.tracer != nil && traceID != "" {
+				errMsg := "invalid recruiter id"
+				h.tracer.Send(tracer.Span{
+					TraceID:   traceID,
+					SpanID:    uuid.NewString(),
+					Service:   "go-job-search",
+					Operation: "list_jobs",
+					Status:    "error",
+					Error:     &errMsg,
+					StartTime: start,
+					EndTime:   end,
+				})
+			}
 			http.Error(w, "invalid recruiter id", http.StatusBadRequest)
 			return
 		}
 		slog.Error("list jobs", "error", err)
+		if h.tracer != nil && traceID != "" {
+			errMsg := "internal server error"
+			h.tracer.Send(tracer.Span{
+				TraceID:   traceID,
+				SpanID:    uuid.NewString(),
+				Service:   "go-job-search",
+				Operation: "list_jobs",
+				Status:    "error",
+				Error:     &errMsg,
+				StartTime: start,
+				EndTime:   end,
+			})
+		}
 		http.Error(w, "server error", http.StatusInternalServerError)
 		return
+	}
+
+	if h.tracer != nil && traceID != "" {
+		h.tracer.Send(tracer.Span{
+			TraceID:   traceID,
+			SpanID:    uuid.NewString(),
+			Service:   "go-job-search",
+			Operation: "list_jobs",
+			Status:    "ok",
+			StartTime: start,
+			EndTime:   end,
+			Metadata:  map[string]any{"count": len(jobs)},
+		})
 	}
 
 	w.Header().Set("Content-Type", "application/json")

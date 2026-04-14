@@ -17,6 +17,7 @@ import (
 	"github.com/Strangebrewer/go-job-search/middleware"
 	"github.com/Strangebrewer/go-job-search/recruiter"
 	"github.com/Strangebrewer/go-job-search/server"
+	"github.com/Strangebrewer/go-job-search/tracer"
 )
 
 func main() {
@@ -38,9 +39,15 @@ func main() {
 		os.Exit(1)
 	}
 
+	var tracerClient *tracer.Client
+	if cfg.TracerURL != "" && cfg.TracerServiceKey != "" {
+		tracerClient = tracer.NewClient(cfg.TracerURL, cfg.TracerServiceKey)
+	}
+
 	application := &app.Application{
 		JobStore:       job.NewStore(pool),
 		RecruiterStore: recruiter.NewStore(pool),
+		Tracer:         tracerClient,
 	}
 
 	port := cfg.Port
