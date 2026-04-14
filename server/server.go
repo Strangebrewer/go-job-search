@@ -21,7 +21,7 @@ func New(addr string, allowedOrigins []string, application *app.Application, aut
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins: allowedOrigins,
 		AllowedMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowedHeaders: []string{"Accept", "Authorization", "Content-Type"},
+		AllowedHeaders: []string{"Accept", "Authorization", "Content-Type", "X-Trace-ID"},
 		MaxAge:         300,
 	}))
 	r.Use(middleware.RequestID)
