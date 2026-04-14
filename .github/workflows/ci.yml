@@ -62,8 +62,8 @@ jobs:
             --max-instances 2 \
             --service-account ${{ env.SERVICE_ACCOUNT }} \
             --add-cloudsql-instances ${{ env.CLOUD_SQL_INSTANCE }} \
-            --set-secrets DATABASE_URL=db-url-job-search:latest,JWT_PUBLIC_KEY=jwt-public-key:latest \
-            --set-env-vars ALLOWED_ORIGINS=${{ vars.ALLOWED_ORIGINS }} \
+            --set-secrets DATABASE_URL=db-url-job-search:latest,JWT_PUBLIC_KEY=jwt-public-key:latest,TRACER_SERVICE_KEY=tracer-service-key:latest \
+            --set-env-vars ALLOWED_ORIGINS=${{ vars.ALLOWED_ORIGINS }},TRACER_SERVICE_URL=${{ vars.TRACER_SERVICE_URL }} \
             --allow-unauthenticated
 
   deploy-prod:
@@ -100,6 +100,6 @@ jobs:
             --max-instances 2 \
             --service-account ${{ env.SERVICE_ACCOUNT }} \
             --add-cloudsql-instances ${{ env.CLOUD_SQL_INSTANCE }} \
-            --set-secrets DATABASE_URL=db-url-job-search:latest,JWT_PUBLIC_KEY=jwt-public-key:latest \
-            --set-env-vars ALLOWED_ORIGINS=${{ vars.ALLOWED_ORIGINS }} \
+            --set-secrets DATABASE_URL=db-url-job-search:latest,JWT_PUBLIC_KEY=jwt-public-key:latest,TRACER_SERVICE_KEY=tracer-service-key:latest \
+            --set-env-vars ALLOWED_ORIGINS=${{ vars.ALLOWED_ORIGINS }},TRACER_SERVICE_URL=${{ vars.TRACER_SERVICE_URL }} \
             --allow-unauthenticated
