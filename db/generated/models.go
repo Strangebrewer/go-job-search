@@ -11,40 +11,40 @@ import (
 )
 
 type Job struct {
-	ID                uuid.UUID
-	UserID            uuid.UUID
-	RecruiterID       uuid.UUID
-	JobTitle          string
-	WorkFrom          string
-	DateApplied       string
-	CompanyName       string
-	CompanyAddress    string
-	CompanyCity       string
-	CompanyState      string
-	PointOfContact    string
-	PocTitle          string
-	Interviews        []string
-	Comments          []string
-	Status            string
-	Archived          bool
-	PrimaryLink       string
-	PrimaryLinkText   string
-	SecondaryLink     string
-	SecondaryLinkText string
-	CreatedAt         time.Time
-	UpdatedAt         time.Time
+	ID                uuid.UUID `json:"id"`
+	UserID            uuid.UUID `json:"userId"`
+	RecruiterID       uuid.UUID `json:"recruiterId"`
+	JobTitle          string    `json:"jobTitle"`
+	WorkFrom          string    `json:"workFrom"`
+	DateApplied       string    `json:"dateApplied"`
+	CompanyName       string    `json:"companyName"`
+	CompanyAddress    string    `json:"companyAddress"`
+	CompanyCity       string    `json:"companyCity"`
+	CompanyState      string    `json:"companyState"`
+	PointOfContact    string    `json:"pointOfContact"`
+	PocTitle          string    `json:"pocTitle"`
+	Interviews        []string  `json:"interviews"`
+	Comments          []string  `json:"comments"`
+	Status            string    `json:"status"`
+	Archived          bool      `json:"archived"`
+	PrimaryLink       string    `json:"primaryLink"`
+	PrimaryLinkText   string    `json:"primaryLinkText"`
+	SecondaryLink     string    `json:"secondaryLink"`
+	SecondaryLinkText string    `json:"secondaryLinkText"`
+	CreatedAt         time.Time `json:"createdAt"`
+	UpdatedAt         time.Time `json:"updatedAt"`
 }
 
 type Recruiter struct {
-	ID        uuid.UUID
-	UserID    uuid.UUID
-	Name      string
-	Company   string
-	Phone     string
-	Email     string
-	Rating    int32
-	Comments  []string
-	Archived  bool
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID        uuid.UUID `json:"id"`
+	UserID    uuid.UUID `json:"userId"`
+	Name      string    `json:"name"`
+	Company   string    `json:"company"`
+	Phone     string    `json:"phone"`
+	Email     string    `json:"email"`
+	Rating    int32     `json:"rating"`
+	Comments  []string  `json:"comments"`
+	Archived  bool      `json:"archived"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
