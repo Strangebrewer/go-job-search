@@ -1,5 +1,32 @@
 package job
 
+import "time"
+
+type Job struct {
+	ID                string    `json:"id"`
+	UserID            string    `json:"userId"`
+	RecruiterID       string    `json:"recruiterId"`
+	JobTitle          string    `json:"jobTitle"`
+	WorkFrom          string    `json:"workFrom"`
+	DateApplied       string    `json:"dateApplied"`
+	CompanyName       string    `json:"companyName"`
+	CompanyAddress    string    `json:"companyAddress"`
+	CompanyCity       string    `json:"companyCity"`
+	CompanyState      string    `json:"companyState"`
+	PointOfContact    string    `json:"pointOfContact"`
+	PocTitle          string    `json:"pocTitle"`
+	Interviews        []string  `json:"interviews"`
+	Comments          []string  `json:"comments"`
+	Status            string    `json:"status"`
+	Archived          bool      `json:"archived"`
+	PrimaryLink       string    `json:"primaryLink"`
+	PrimaryLinkText   string    `json:"primaryLinkText"`
+	SecondaryLink     string    `json:"secondaryLink"`
+	SecondaryLinkText string    `json:"secondaryLinkText"`
+	CreatedAt         time.Time `json:"createdAt"`
+	UpdatedAt         time.Time `json:"updatedAt"`
+}
+
 type CreateJobRequest struct {
 	RecruiterID       string `json:"recruiterId"`
 	JobTitle          string `json:"jobTitle"`

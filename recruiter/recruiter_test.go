@@ -7,65 +7,54 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/testcontainers/testcontainers-go"
-	tcpostgres "github.com/testcontainers/testcontainers-go/modules/postgres"
-	"github.com/testcontainers/testcontainers-go/wait"
+	tcmongo "github.com/testcontainers/testcontainers-go/modules/mongodb"
 
+	"github.com/Strangebrewer/go-job-search/db_connection"
+	"github.com/Strangebrewer/go-job-search/job"
 	"github.com/Strangebrewer/go-job-search/recruiter"
 )
 
 var (
-	testPool  *pgxpool.Pool
-	testStore *recruiter.Store
+	testStore    *recruiter.Store
+	testJobStore *job.Store
 )
 
 func TestMain(m *testing.M) {
 	ctx := context.Background()
 
-	pgContainer, err := tcpostgres.Run(ctx,
-		"postgres:16-alpine",
-		tcpostgres.WithDatabase("testdb"),
-		tcpostgres.WithUsername("test"),
-		tcpostgres.WithPassword("test"),
-		testcontainers.WithWaitStrategy(
-			wait.ForLog("database system is ready to accept connections").
-				WithOccurrence(2),
-		),
-	)
+	mongoContainer, err := tcmongo.Run(ctx, "mongo:6")
 	if err != nil {
-		log.Fatalf("failed to start postgres container: %v", err)
+		log.Fatalf("failed to start mongo container: %v", err)
 	}
 	defer func() {
-		if err := pgContainer.Terminate(ctx); err != nil {
+		if err := mongoContainer.Terminate(ctx); err != nil {
 			log.Printf("failed to terminate container: %v", err)
 		}
 	}()
 
-	connStr, err := pgContainer.ConnectionString(ctx, "sslmode=disable")
+	uri, err := mongoContainer.ConnectionString(ctx)
 	if err != nil {
 		log.Fatalf("failed to get connection string: %v", err)
 	}
 
-	testPool, err = pgxpool.New(ctx, connStr)
+	_, db, err := db_connection.Connect(ctx, uri)
 	if err != nil {
-		log.Fatalf("failed to create pool: %v", err)
-	}
-	defer testPool.Close()
-
-	schema, err := os.ReadFile("../db/schema.sql")
-	if err != nil {
-		log.Fatalf("failed to read schema: %v", err)
-	}
-	if _, err := testPool.Exec(ctx, string(schema)); err != nil {
-		log.Fatalf("failed to apply schema: %v", err)
+		log.Fatalf("failed to connect to database: %v", err)
 	}
 
-	testStore = recruiter.NewStore(testPool)
+	testStore = recruiter.NewStore(db)
+	testJobStore = job.NewStore(db)
 
 	os.Exit(m.Run())
+}
+
+func mustParseUUID(t *testing.T, s string) uuid.UUID {
+	t.Helper()
+	id, err := uuid.Parse(s)
+	require.NoError(t, err)
+	return id
 }
 
 func TestRecruiterStore_Create(t *testing.T) {
@@ -84,9 +73,9 @@ func TestRecruiterStore_Create(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.NotEmpty(t, r.ID)
-	assert.Equal(t, userID, r.UserID)
+	assert.Equal(t, userID.String(), r.UserID)
 	assert.Equal(t, "Jane Recruiter", r.Name)
-	assert.Equal(t, "jane@acme.com", r.Email) // normalized to lowercase
+	assert.Equal(t, "jane@acme.com", r.Email)
 	assert.Equal(t, int32(4), r.Rating)
 	assert.Equal(t, []string{}, r.Comments)
 	assert.False(t, r.Archived)
@@ -109,7 +98,7 @@ func TestRecruiterStore_List(t *testing.T) {
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, len(results), 2)
 	for _, r := range results {
-		assert.Equal(t, userID, r.UserID)
+		assert.Equal(t, userID.String(), r.UserID)
 	}
 }
 
@@ -120,7 +109,7 @@ func TestRecruiterStore_GetByID(t *testing.T) {
 	created, err := testStore.Create(ctx, userID, recruiter.CreateRecruiterRequest{Name: "Get Me"})
 	require.NoError(t, err)
 
-	found, err := testStore.GetByID(ctx, created.ID, userID)
+	found, err := testStore.GetByID(ctx, mustParseUUID(t, created.ID), userID)
 
 	require.NoError(t, err)
 	assert.Equal(t, created.ID, found.ID)
@@ -142,7 +131,7 @@ func TestRecruiterStore_GetByID_WrongUser(t *testing.T) {
 	created, err := testStore.Create(ctx, userID, recruiter.CreateRecruiterRequest{Name: "Wrong User"})
 	require.NoError(t, err)
 
-	_, err = testStore.GetByID(ctx, created.ID, uuid.New())
+	_, err = testStore.GetByID(ctx, mustParseUUID(t, created.ID), uuid.New())
 
 	assert.ErrorIs(t, err, recruiter.ErrNotFound)
 }
@@ -154,7 +143,7 @@ func TestRecruiterStore_Update(t *testing.T) {
 	created, err := testStore.Create(ctx, userID, recruiter.CreateRecruiterRequest{Name: "Before"})
 	require.NoError(t, err)
 
-	updated, err := testStore.Update(ctx, created.ID, userID, recruiter.UpdateRecruiterRequest{
+	updated, err := testStore.Update(ctx, mustParseUUID(t, created.ID), userID, recruiter.UpdateRecruiterRequest{
 		Name:     "After",
 		Company:  "New Co",
 		Rating:   5,
@@ -176,10 +165,10 @@ func TestRecruiterStore_Delete(t *testing.T) {
 	created, err := testStore.Create(ctx, userID, recruiter.CreateRecruiterRequest{Name: "Delete Me"})
 	require.NoError(t, err)
 
-	err = testStore.Delete(ctx, created.ID, userID)
+	err = testStore.Delete(ctx, mustParseUUID(t, created.ID), userID)
 	require.NoError(t, err)
 
-	_, err = testStore.GetByID(ctx, created.ID, userID)
+	_, err = testStore.GetByID(ctx, mustParseUUID(t, created.ID), userID)
 	assert.ErrorIs(t, err, recruiter.ErrNotFound)
 }
 
@@ -198,15 +187,13 @@ func TestRecruiterStore_Delete_BlockedByJobs(t *testing.T) {
 	r, err := testStore.Create(ctx, userID, recruiter.CreateRecruiterRequest{Name: "Has Jobs"})
 	require.NoError(t, err)
 
-	// Insert a job referencing this recruiter directly via SQL to set up the FK constraint
-	jobID := uuid.New()
-	_, err = testPool.Exec(ctx,
-		`INSERT INTO jobs (id, user_id, recruiter_id, job_title, company_name, created_at, updated_at)
-		 VALUES ($1, $2, $3, 'Engineer', 'Test Co', now(), now())`,
-		jobID, userID, r.ID,
-	)
+	_, err = testJobStore.Create(ctx, userID, job.CreateJobRequest{
+		RecruiterID: r.ID,
+		JobTitle:    "Engineer",
+		CompanyName: "Test Co",
+	})
 	require.NoError(t, err)
 
-	err = testStore.Delete(ctx, r.ID, userID)
+	err = testStore.Delete(ctx, mustParseUUID(t, r.ID), userID)
 	assert.ErrorIs(t, err, recruiter.ErrHasJobs)
 }

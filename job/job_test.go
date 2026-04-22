@@ -7,69 +7,48 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/testcontainers/testcontainers-go"
-	tcpostgres "github.com/testcontainers/testcontainers-go/modules/postgres"
-	"github.com/testcontainers/testcontainers-go/wait"
+	tcmongo "github.com/testcontainers/testcontainers-go/modules/mongodb"
 
+	"github.com/Strangebrewer/go-job-search/db_connection"
 	"github.com/Strangebrewer/go-job-search/job"
 	"github.com/Strangebrewer/go-job-search/recruiter"
 )
 
 var (
 	testStore       *job.Store
-	seedRecruiterID uuid.UUID
+	seedRecruiterID string
 	seedUserID      uuid.UUID
 )
 
 func TestMain(m *testing.M) {
 	ctx := context.Background()
 
-	pgContainer, err := tcpostgres.Run(ctx,
-		"postgres:16-alpine",
-		tcpostgres.WithDatabase("testdb"),
-		tcpostgres.WithUsername("test"),
-		tcpostgres.WithPassword("test"),
-		testcontainers.WithWaitStrategy(
-			wait.ForLog("database system is ready to accept connections").
-				WithOccurrence(2),
-		),
-	)
+	mongoContainer, err := tcmongo.Run(ctx, "mongo:6")
 	if err != nil {
-		log.Fatalf("failed to start postgres container: %v", err)
+		log.Fatalf("failed to start mongo container: %v", err)
 	}
 	defer func() {
-		if err := pgContainer.Terminate(ctx); err != nil {
+		if err := mongoContainer.Terminate(ctx); err != nil {
 			log.Printf("failed to terminate container: %v", err)
 		}
 	}()
 
-	connStr, err := pgContainer.ConnectionString(ctx, "sslmode=disable")
+	uri, err := mongoContainer.ConnectionString(ctx)
 	if err != nil {
 		log.Fatalf("failed to get connection string: %v", err)
 	}
 
-	pool, err := pgxpool.New(ctx, connStr)
+	_, db, err := db_connection.Connect(ctx, uri)
 	if err != nil {
-		log.Fatalf("failed to create pool: %v", err)
-	}
-	defer pool.Close()
-
-	schema, err := os.ReadFile("../db/schema.sql")
-	if err != nil {
-		log.Fatalf("failed to read schema: %v", err)
-	}
-	if _, err := pool.Exec(ctx, string(schema)); err != nil {
-		log.Fatalf("failed to apply schema: %v", err)
+		log.Fatalf("failed to connect to database: %v", err)
 	}
 
-	testStore = job.NewStore(pool)
+	testStore = job.NewStore(db)
 
-	// Seed a recruiter that all job tests can use
 	seedUserID = uuid.New()
-	recruiterStore := recruiter.NewStore(pool)
+	recruiterStore := recruiter.NewStore(db)
 	r, err := recruiterStore.Create(ctx, seedUserID, recruiter.CreateRecruiterRequest{
 		Name:    "Seed Recruiter",
 		Company: "Seed Co",
@@ -85,7 +64,7 @@ func TestMain(m *testing.M) {
 func seedJob(t *testing.T, overrides ...func(*job.CreateJobRequest)) job.CreateJobRequest {
 	t.Helper()
 	req := job.CreateJobRequest{
-		RecruiterID: seedRecruiterID.String(),
+		RecruiterID: seedRecruiterID,
 		JobTitle:    "Software Engineer",
 		CompanyName: "Acme Corp",
 		Status:      "applied",
@@ -98,6 +77,13 @@ func seedJob(t *testing.T, overrides ...func(*job.CreateJobRequest)) job.CreateJ
 	return req
 }
 
+func mustParseUUID(t *testing.T, s string) uuid.UUID {
+	t.Helper()
+	id, err := uuid.Parse(s)
+	require.NoError(t, err)
+	return id
+}
+
 func TestJobStore_Create(t *testing.T) {
 	ctx := context.Background()
 
@@ -106,7 +92,7 @@ func TestJobStore_Create(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.NotEmpty(t, j.ID)
-	assert.Equal(t, seedUserID, j.UserID)
+	assert.Equal(t, seedUserID.String(), j.UserID)
 	assert.Equal(t, seedRecruiterID, j.RecruiterID)
 	assert.Equal(t, "Software Engineer", j.JobTitle)
 	assert.Equal(t, "applied", j.Status)
@@ -143,7 +129,7 @@ func TestJobStore_GetByID(t *testing.T) {
 	created, err := testStore.Create(ctx, seedUserID, seedJob(t))
 	require.NoError(t, err)
 
-	found, err := testStore.GetByID(ctx, created.ID, seedUserID)
+	found, err := testStore.GetByID(ctx, mustParseUUID(t, created.ID), seedUserID)
 
 	require.NoError(t, err)
 	assert.Equal(t, created.ID, found.ID)
@@ -163,7 +149,7 @@ func TestJobStore_GetByID_WrongUser(t *testing.T) {
 	created, err := testStore.Create(ctx, seedUserID, seedJob(t))
 	require.NoError(t, err)
 
-	_, err = testStore.GetByID(ctx, created.ID, uuid.New())
+	_, err = testStore.GetByID(ctx, mustParseUUID(t, created.ID), uuid.New())
 
 	assert.ErrorIs(t, err, job.ErrNotFound)
 }
@@ -174,7 +160,7 @@ func TestJobStore_List(t *testing.T) {
 
 	for i := 0; i < 3; i++ {
 		_, err := testStore.Create(ctx, userID, job.CreateJobRequest{
-			RecruiterID: seedRecruiterID.String(),
+			RecruiterID: seedRecruiterID,
 			JobTitle:    "Engineer",
 			CompanyName: "Co",
 		})
@@ -186,7 +172,7 @@ func TestJobStore_List(t *testing.T) {
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, len(results), 3)
 	for _, j := range results {
-		assert.Equal(t, userID, j.UserID)
+		assert.Equal(t, userID.String(), j.UserID)
 	}
 }
 
@@ -195,14 +181,14 @@ func TestJobStore_List_FilterByStatus(t *testing.T) {
 	userID := uuid.New()
 
 	_, err := testStore.Create(ctx, userID, job.CreateJobRequest{
-		RecruiterID: seedRecruiterID.String(),
+		RecruiterID: seedRecruiterID,
 		JobTitle:    "Dev",
 		CompanyName: "Co",
 		Status:      "interviewing",
 	})
 	require.NoError(t, err)
 	_, err = testStore.Create(ctx, userID, job.CreateJobRequest{
-		RecruiterID: seedRecruiterID.String(),
+		RecruiterID: seedRecruiterID,
 		JobTitle:    "Dev",
 		CompanyName: "Co",
 		Status:      "applied",
@@ -221,22 +207,21 @@ func TestJobStore_List_ExcludesArchivedByDefault(t *testing.T) {
 	userID := uuid.New()
 
 	active, err := testStore.Create(ctx, userID, job.CreateJobRequest{
-		RecruiterID: seedRecruiterID.String(),
+		RecruiterID: seedRecruiterID,
 		JobTitle:    "Active",
 		CompanyName: "Co",
 	})
 	require.NoError(t, err)
 
 	archived, err := testStore.Create(ctx, userID, job.CreateJobRequest{
-		RecruiterID: seedRecruiterID.String(),
+		RecruiterID: seedRecruiterID,
 		JobTitle:    "Archived",
 		CompanyName: "Co",
 	})
 	require.NoError(t, err)
 
-	// Archive the second job via update
-	_, err = testStore.Update(ctx, archived.ID, userID, job.UpdateJobRequest{
-		RecruiterID: seedRecruiterID.String(),
+	_, err = testStore.Update(ctx, mustParseUUID(t, archived.ID), userID, job.UpdateJobRequest{
+		RecruiterID: seedRecruiterID,
 		JobTitle:    "Archived",
 		CompanyName: "Co",
 		Archived:    true,
@@ -246,7 +231,7 @@ func TestJobStore_List_ExcludesArchivedByDefault(t *testing.T) {
 	results, err := testStore.List(ctx, userID, job.JobFilter{})
 	require.NoError(t, err)
 
-	ids := make([]uuid.UUID, len(results))
+	ids := make([]string, len(results))
 	for i, r := range results {
 		ids[i] = r.ID
 	}
@@ -260,8 +245,8 @@ func TestJobStore_Update(t *testing.T) {
 	created, err := testStore.Create(ctx, seedUserID, seedJob(t))
 	require.NoError(t, err)
 
-	updated, err := testStore.Update(ctx, created.ID, seedUserID, job.UpdateJobRequest{
-		RecruiterID: seedRecruiterID.String(),
+	updated, err := testStore.Update(ctx, mustParseUUID(t, created.ID), seedUserID, job.UpdateJobRequest{
+		RecruiterID: seedRecruiterID,
 		JobTitle:    "Senior Engineer",
 		CompanyName: "New Co",
 		Status:      "interviewing",
@@ -281,7 +266,7 @@ func TestJobStore_Update_NotFound(t *testing.T) {
 	ctx := context.Background()
 
 	_, err := testStore.Update(ctx, uuid.New(), seedUserID, job.UpdateJobRequest{
-		RecruiterID: seedRecruiterID.String(),
+		RecruiterID: seedRecruiterID,
 		JobTitle:    "X",
 		CompanyName: "X",
 	})
@@ -295,10 +280,10 @@ func TestJobStore_Delete(t *testing.T) {
 	created, err := testStore.Create(ctx, seedUserID, seedJob(t))
 	require.NoError(t, err)
 
-	err = testStore.Delete(ctx, created.ID, seedUserID)
+	err = testStore.Delete(ctx, mustParseUUID(t, created.ID), seedUserID)
 	require.NoError(t, err)
 
-	_, err = testStore.GetByID(ctx, created.ID, seedUserID)
+	_, err = testStore.GetByID(ctx, mustParseUUID(t, created.ID), seedUserID)
 	assert.ErrorIs(t, err, job.ErrNotFound)
 }
 
