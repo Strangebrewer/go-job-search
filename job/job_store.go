@@ -99,7 +99,6 @@ func (s *Store) Create(ctx context.Context, userID uuid.UUID, req CreateJobReque
 
 	count, err := s.recruiters.CountDocuments(ctx, bson.D{
 		{Key: "_id", Value: req.RecruiterID},
-		{Key: "userId", Value: userID.String()},
 	})
 	if err != nil {
 		return Job{}, fmt.Errorf("validate recruiter: %w", err)
