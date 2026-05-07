@@ -7,18 +7,22 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type Client struct {
 	url        string
 	serviceKey string
+	service    string
 	http       *http.Client
 }
 
-func NewClient(url, serviceKey string) *Client {
+func NewClient(url, serviceKey string, service string) *Client {
 	return &Client{
 		url:        url,
 		serviceKey: serviceKey,
+		service:    service,
 		http:       &http.Client{Timeout: 5 * time.Second},
 	}
 }
@@ -65,4 +69,40 @@ func (c *Client) Send(span Span) {
 			slog.Error("tracer: unexpected status", "status", resp.StatusCode)
 		}
 	}()
+}
+
+func (c *Client) SendSpan(traceId, op string, start time.Time, end time.Time, count ...int) {
+	if c == nil || traceId == "" {
+		return
+	}
+	span := Span{
+		TraceID:   traceId,
+		SpanID:    uuid.NewString(),
+		Service:   c.service,
+		Operation: op,
+		Status:    "ok",
+		StartTime: start,
+		EndTime:   end,
+	}
+	if len(count) > 0 {
+		span.Metadata = map[string]any{"count": count[0]}
+	}
+	c.Send(span)
+}
+
+func (c *Client) SendErrorSpan(traceId, op, errMsg string, start, end time.Time) {
+	if c == nil || traceId == "" {
+		return
+	}
+	span := Span{
+		TraceID:   traceId,
+		SpanID:    uuid.NewString(),
+		Service:   c.service,
+		Operation: op,
+		Status:    "error",
+		Error:     &errMsg,
+		StartTime: start,
+		EndTime:   end,
+	}
+	c.Send(span)
 }

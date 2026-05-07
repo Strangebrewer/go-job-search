@@ -46,7 +46,7 @@ func main() {
 
 	var tracerClient *tracer.Client
 	if cfg.TracerURL != "" && cfg.TracerServiceKey != "" {
-		tracerClient = tracer.NewClient(cfg.TracerURL, cfg.TracerServiceKey)
+		tracerClient = tracer.NewClient(cfg.TracerURL, cfg.TracerServiceKey, "go-job-search")
 	}
 
 	application := &app.Application{

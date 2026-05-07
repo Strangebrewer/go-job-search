@@ -15,5 +15,5 @@ func registerRoutes(r chi.Router, application *app.Application, authMiddleware f
 	r.Get("/health", health.Handler)
 
 	r.With(authMiddleware).Mount("/jobs", job.Routes(application.JobStore, application.Tracer))
-	r.With(authMiddleware).Mount("/recruiters", recruiter.Routes(application.RecruiterStore))
+	r.With(authMiddleware).Mount("/recruiters", recruiter.Routes(application.RecruiterStore, application.Tracer))
 }

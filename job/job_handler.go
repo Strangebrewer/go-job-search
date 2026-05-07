@@ -3,6 +3,7 @@ package job
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
@@ -51,52 +52,19 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		if errors.Is(err, ErrInvalidRecruiter) {
-			if h.tracer != nil && traceID != "" {
-				errMsg := "invalid recruiter id"
-				h.tracer.Send(tracer.Span{
-					TraceID:   traceID,
-					SpanID:    uuid.NewString(),
-					Service:   "go-job-search",
-					Operation: "list_jobs",
-					Status:    "error",
-					Error:     &errMsg,
-					StartTime: start,
-					EndTime:   end,
-				})
-			}
-			http.Error(w, "invalid recruiter id", http.StatusBadRequest)
+			errMsg := "invalid recruiter id"
+			h.tracer.SendErrorSpan(traceID, "list_jobs", errMsg, start, end)
+			http.Error(w, errMsg, http.StatusBadRequest)
 			return
 		}
 		slog.Error("list jobs", "error", err)
-		if h.tracer != nil && traceID != "" {
-			errMsg := "internal server error"
-			h.tracer.Send(tracer.Span{
-				TraceID:   traceID,
-				SpanID:    uuid.NewString(),
-				Service:   "go-job-search",
-				Operation: "list_jobs",
-				Status:    "error",
-				Error:     &errMsg,
-				StartTime: start,
-				EndTime:   end,
-			})
-		}
-		http.Error(w, "server error", http.StatusInternalServerError)
+		errMsg := "internal server error"
+		h.tracer.SendErrorSpan(traceID, "list_jobs", errMsg, start, end)
+		http.Error(w, errMsg, http.StatusInternalServerError)
 		return
 	}
 
-	if h.tracer != nil && traceID != "" {
-		h.tracer.Send(tracer.Span{
-			TraceID:   traceID,
-			SpanID:    uuid.NewString(),
-			Service:   "go-job-search",
-			Operation: "list_jobs",
-			Status:    "ok",
-			StartTime: start,
-			EndTime:   end,
-			Metadata:  map[string]any{"count": len(jobs)},
-		})
-	}
+	h.tracer.SendSpan(traceID, "list_jobs", start, end, len(jobs))
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(jobs)
@@ -115,16 +83,27 @@ func (h *Handler) GetOne(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	traceID := r.Header.Get("X-Trace-ID")
+	op := fmt.Sprintf("get_job by id: %s", id)
+
+	start := time.Now()
 	j, err := h.store.GetByID(r.Context(), id, userID)
+	end := time.Now()
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
-			http.Error(w, "not found", http.StatusNotFound)
+			errMsg := "not found"
+			h.tracer.SendErrorSpan(traceID, op, errMsg, start, end)
+			http.Error(w, errMsg, http.StatusNotFound)
 			return
 		}
 		slog.Error("get job", "id", id, "error", err)
-		http.Error(w, "server error", http.StatusInternalServerError)
+		errMsg := "internal server error"
+		h.tracer.SendErrorSpan(traceID, op, errMsg, start, end)
+		http.Error(w, errMsg, http.StatusInternalServerError)
 		return
 	}
+
+	h.tracer.SendSpan(traceID, op, start, end)
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(j)
@@ -137,35 +116,56 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	traceID := r.Header.Get("X-Trace-ID")
+
+	start := time.Now()
 	var req CreateJobRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid json", http.StatusBadRequest)
+		errMsg := "invalid json"
+		end := time.Now()
+		h.tracer.SendErrorSpan(traceID, "create_job", errMsg, start, end)
+		http.Error(w, errMsg, http.StatusBadRequest)
 		return
 	}
 
 	if req.RecruiterID == "" {
-		http.Error(w, "recruiter_id is required", http.StatusBadRequest)
+		errMsg := "recruiter_id is required"
+		end := time.Now()
+		h.tracer.SendErrorSpan(traceID, "create_job", errMsg, start, end)
+		http.Error(w, errMsg, http.StatusBadRequest)
 		return
 	}
 	if req.JobTitle == "" {
-		http.Error(w, "job_title is required", http.StatusBadRequest)
+		errMsg := "job_title is required"
+		end := time.Now()
+		h.tracer.SendErrorSpan(traceID, "create_job", errMsg, start, end)
+		http.Error(w, errMsg, http.StatusBadRequest)
 		return
 	}
 	if req.CompanyName == "" {
-		http.Error(w, "company_name is required", http.StatusBadRequest)
+		errMsg := "company_name is required"
+		end := time.Now()
+		h.tracer.SendErrorSpan(traceID, "create_job", errMsg, start, end)
+		http.Error(w, errMsg, http.StatusBadRequest)
 		return
 	}
-
 	created, err := h.store.Create(r.Context(), userID, req)
+	end := time.Now()
 	if err != nil {
 		if errors.Is(err, ErrInvalidRecruiter) {
-			http.Error(w, "invalid recruiter_id", http.StatusBadRequest)
+			errMsg := "invalid recruiter id"
+			h.tracer.SendErrorSpan(traceID, "create_job", errMsg, start, end)
+			http.Error(w, errMsg, http.StatusBadRequest)
 			return
 		}
 		slog.Error("create job", "error", err)
-		http.Error(w, "server error", http.StatusInternalServerError)
+		errMsg := "internal server error"
+		h.tracer.SendErrorSpan(traceID, "create_job", errMsg, start, end)
+		http.Error(w, errMsg, http.StatusInternalServerError)
 		return
 	}
+
+	h.tracer.SendSpan(traceID, "create_job", start, end)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
@@ -179,32 +179,53 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	traceID := r.Header.Get("X-Trace-ID")
+
+	start := time.Now()
 	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	op := fmt.Sprintf("update_job by id: %s", id)
+
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		errMsg := "invalid id"
+		end := time.Now()
+		h.tracer.SendErrorSpan(traceID, op, errMsg, start, end)
+		http.Error(w, errMsg, http.StatusBadRequest)
 		return
 	}
 
 	var req UpdateJobRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid json", http.StatusBadRequest)
+		errMsg := "invalid json"
+		end := time.Now()
+		h.tracer.SendErrorSpan(traceID, op, errMsg, start, end)
+		http.Error(w, errMsg, http.StatusBadRequest)
 		return
 	}
 
 	updated, err := h.store.Update(r.Context(), id, userID, req)
+	end := time.Now()
+
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
-			http.Error(w, "not found", http.StatusNotFound)
+			errMsg := "not found"
+			h.tracer.SendErrorSpan(traceID, op, errMsg, start, end)
+			http.Error(w, errMsg, http.StatusNotFound)
 			return
 		}
 		if errors.Is(err, ErrInvalidRecruiter) {
-			http.Error(w, "invalid recruiter_id", http.StatusBadRequest)
+			errMsg := "invalid recruiter_id"
+			h.tracer.SendErrorSpan(traceID, op, errMsg, start, end)
+			http.Error(w, errMsg, http.StatusBadRequest)
 			return
 		}
 		slog.Error("update job", "id", id, "error", err)
-		http.Error(w, "server error", http.StatusInternalServerError)
+		errMsg := "internal server error"
+		h.tracer.SendErrorSpan(traceID, op, errMsg, start, end)
+		http.Error(w, errMsg, http.StatusInternalServerError)
 		return
 	}
+
+	h.tracer.SendSpan(traceID, op, start, end)
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(updated)
@@ -217,21 +238,37 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	traceID := r.Header.Get("X-Trace-ID")
+
+	start := time.Now()
 	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	op := fmt.Sprintf("delete_job by id: %s", id)
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		errMsg := "invalid id"
+		end := time.Now()
+		h.tracer.SendErrorSpan(traceID, op, errMsg, start, end)
+		http.Error(w, errMsg, http.StatusBadRequest)
 		return
 	}
 
 	if err := h.store.Delete(r.Context(), id, userID); err != nil {
 		if errors.Is(err, ErrNotFound) {
-			http.Error(w, "not found", http.StatusNotFound)
+			errMsg := "not found"
+			end := time.Now()
+			h.tracer.SendErrorSpan(traceID, op, errMsg, start, end)
+			http.Error(w, errMsg, http.StatusNotFound)
 			return
 		}
 		slog.Error("delete job", "id", id, "error", err)
-		http.Error(w, "server error", http.StatusInternalServerError)
+		errMsg := "internal server error"
+		end := time.Now()
+		h.tracer.SendErrorSpan(traceID, op, errMsg, start, end)
+		http.Error(w, errMsg, http.StatusInternalServerError)
 		return
 	}
+
+	end := time.Now()
+	h.tracer.SendSpan(traceID, op, start, end)
 
 	w.WriteHeader(http.StatusNoContent)
 }

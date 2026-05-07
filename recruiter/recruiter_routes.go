@@ -1,10 +1,14 @@
 package recruiter
 
-import "github.com/go-chi/chi/v5"
+import (
+	"github.com/go-chi/chi/v5"
 
-func Routes(store *Store) chi.Router {
+	"github.com/Strangebrewer/go-job-search/tracer"
+)
+
+func Routes(store *Store, tc *tracer.Client) chi.Router {
 	r := chi.NewRouter()
-	h := NewHandler(store)
+	h := NewHandler(store, tc)
 
 	r.Get("/", h.List)
 	r.Get("/{id}", h.GetOne)

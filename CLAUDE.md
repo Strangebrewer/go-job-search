@@ -100,6 +100,6 @@ Copy `.env.example` to `.env.local` for local dev. Never commit `.env.local`.
 
 - Migrated from Postgres (sqlc + golang-migrate) to MongoDB Atlas (mongo-driver v2)
 - `job/` and `recruiter/` domains complete — full CRUD, integration tests passing
-- Tracing wired on `GET /jobs`
+- Tracing wired on all `job/` and `recruiter/` endpoints (all handlers emit spans on success and error paths)
 - Deployed to dev: `https://go-job-search-dev-213672305641.us-central1.run.app`
 - **GCP TODO**: update `db-url-job-search` secret in Secret Manager to MongoDB Atlas URI; remove Cloud SQL attachment from Cloud Run service
