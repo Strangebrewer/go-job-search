@@ -10,14 +10,16 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/Strangebrewer/go-job-search/middleware"
+	"github.com/Strangebrewer/go-job-search/pubsub"
 )
 
 type Handler struct {
-	store *Store
+	store     *Store
+	publisher *pubsub.Publisher
 }
 
-func NewHandler(store *Store) *Handler {
-	return &Handler{store: store}
+func NewHandler(store *Store, publisher *pubsub.Publisher) *Handler {
+	return &Handler{store: store, publisher: publisher}
 }
 
 func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
@@ -118,6 +120,16 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		slog.Error("create job", "error", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
+	}
+
+	if h.publisher != nil {
+		h.publisher.PublishJobCreated(pubsub.JobCreatedPayload{
+			UserID:      userID.String(),
+			JobID:       created.ID,
+			JobTitle:    created.JobTitle,
+			CompanyName: created.CompanyName,
+			TraceID:     r.Header.Get("X-Trace-ID"),
+		})
 	}
 
 	w.Header().Set("Content-Type", "application/json")

@@ -15,6 +15,7 @@ import (
 	"github.com/Strangebrewer/go-job-search/db_connection"
 	"github.com/Strangebrewer/go-job-search/job"
 	"github.com/Strangebrewer/go-job-search/middleware"
+	"github.com/Strangebrewer/go-job-search/pubsub"
 	"github.com/Strangebrewer/go-job-search/recruiter"
 	"github.com/Strangebrewer/go-job-search/server"
 	"github.com/Strangebrewer/go-job-search/tracer"
@@ -49,10 +50,20 @@ func main() {
 		tracerClient = tracer.NewClient(cfg.TracerURL, cfg.TracerServiceKey, "go-job-search")
 	}
 
+	var publisher *pubsub.Publisher
+	if cfg.PubSubProjectID != "" && cfg.PubSubTopicID != "" {
+		var err error
+		publisher, err = pubsub.NewPublisher(ctx, cfg.PubSubProjectID, cfg.PubSubTopicID)
+		if err != nil {
+			slog.Warn("failed to initialize pubsub publisher", "error", err)
+		}
+	}
+
 	application := &app.Application{
 		JobStore:       job.NewStore(db),
 		RecruiterStore: recruiter.NewStore(db),
 		Tracer:         tracerClient,
+		Publisher:      publisher,
 	}
 
 	port := cfg.Port
@@ -81,6 +92,10 @@ func main() {
 	if err := srv.HTTPServer.Shutdown(shutdownCtx); err != nil {
 		slog.Error("server shutdown failed", "error", err)
 		os.Exit(1)
+	}
+
+	if publisher != nil {
+		publisher.Close()
 	}
 	slog.Info("server stopped")
 }

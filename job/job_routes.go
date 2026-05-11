@@ -2,11 +2,13 @@ package job
 
 import (
 	"github.com/go-chi/chi/v5"
+
+	"github.com/Strangebrewer/go-job-search/pubsub"
 )
 
-func Routes(store *Store) chi.Router {
+func Routes(store *Store, publisher *pubsub.Publisher) chi.Router {
 	r := chi.NewRouter()
-	h := NewHandler(store)
+	h := NewHandler(store, publisher)
 
 	r.Get("/", h.List)
 	r.Get("/{id}", h.GetOne)
