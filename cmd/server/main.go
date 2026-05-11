@@ -51,9 +51,9 @@ func main() {
 	}
 
 	var publisher *pubsub.Publisher
-	if cfg.PubSubProjectID != "" && cfg.PubSubTopicID != "" {
+	if cfg.PubSubProjectID != "" && cfg.PubSubJobCreatedTopicID != "" {
 		var err error
-		publisher, err = pubsub.NewPublisher(ctx, cfg.PubSubProjectID, cfg.PubSubTopicID)
+		publisher, err = pubsub.NewPublisher(ctx, cfg.PubSubProjectID, cfg.PubSubJobCreatedTopicID)
 		if err != nil {
 			slog.Warn("failed to initialize pubsub publisher", "error", err)
 		}

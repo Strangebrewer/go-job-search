@@ -15,7 +15,7 @@ type Config struct {
 	TracerURL        string
 	TracerServiceKey string
 	PubSubProjectID  string
-	PubSubTopicID    string
+	PubSubJobCreatedTopicID string
 }
 
 func parseOrigins(s string) []string {
@@ -38,6 +38,6 @@ func Load() *Config {
 		TracerURL:        os.Getenv("TRACER_SERVICE_URL"),
 		TracerServiceKey: os.Getenv("TRACER_SERVICE_KEY"),
 		PubSubProjectID:  os.Getenv("PUBSUB_PROJECT_ID"),
-		PubSubTopicID:    os.Getenv("PUBSUB_CREATE_JOB_TOPIC_ID"),
+		PubSubJobCreatedTopicID: "job-created",
 	}
 }
