@@ -51,19 +51,21 @@ func main() {
 	}
 
 	var publisher *pubsub.Publisher
-	if cfg.PubSubProjectID != "" && cfg.PubSubJobCreatedTopicID != "" {
+	if cfg.PubSubProjectID != "" {
 		var err error
-		publisher, err = pubsub.NewPublisher(ctx, cfg.PubSubProjectID, cfg.PubSubJobCreatedTopicID)
+		publisher, err = pubsub.NewPublisher(ctx, cfg.PubSubProjectID)
 		if err != nil {
 			slog.Warn("failed to initialize pubsub publisher", "error", err)
 		}
 	}
 
 	application := &app.Application{
-		JobStore:       job.NewStore(db),
-		RecruiterStore: recruiter.NewStore(db),
-		Tracer:         tracerClient,
-		Publisher:      publisher,
+		JobStore:                  job.NewStore(db),
+		RecruiterStore:            recruiter.NewStore(db),
+		Tracer:                    tracerClient,
+		Publisher:                 publisher,
+		JobCreatedTopicID:         cfg.PubSubJobCreatedTopicID,
+		InterviewScheduledTopicID: cfg.PubSubInterviewScheduledTopicID,
 	}
 
 	port := cfg.Port

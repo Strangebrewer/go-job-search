@@ -8,8 +8,10 @@ import (
 )
 
 type Application struct {
-	JobStore       *job.Store
-	RecruiterStore *recruiter.Store
-	Tracer         *tracer.Client
-	Publisher      *pubsub.Publisher
+	JobStore                        *job.Store
+	RecruiterStore                  *recruiter.Store
+	Tracer                          *tracer.Client
+	Publisher                       *pubsub.Publisher
+	JobCreatedTopicID               string
+	InterviewScheduledTopicID       string
 }

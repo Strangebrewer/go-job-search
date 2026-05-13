@@ -6,9 +6,9 @@ import (
 	"github.com/Strangebrewer/go-job-search/pubsub"
 )
 
-func Routes(store *Store, publisher *pubsub.Publisher) chi.Router {
+func Routes(store *Store, publisher *pubsub.Publisher, jobCreatedTopicID, interviewScheduledTopicID string) chi.Router {
 	r := chi.NewRouter()
-	h := NewHandler(store, publisher)
+	h := NewHandler(store, publisher, jobCreatedTopicID, interviewScheduledTopicID)
 
 	r.Get("/", h.List)
 	r.Get("/{id}", h.GetOne)

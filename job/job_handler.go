@@ -14,12 +14,19 @@ import (
 )
 
 type Handler struct {
-	store     *Store
-	publisher *pubsub.Publisher
+	store                     *Store
+	publisher                 *pubsub.Publisher
+	jobCreatedTopicID         string
+	interviewScheduledTopicID string
 }
 
-func NewHandler(store *Store, publisher *pubsub.Publisher) *Handler {
-	return &Handler{store: store, publisher: publisher}
+func NewHandler(store *Store, publisher *pubsub.Publisher, jobCreatedTopicID, interviewScheduledTopicID string) *Handler {
+	return &Handler{
+		store:                     store,
+		publisher:                 publisher,
+		jobCreatedTopicID:         jobCreatedTopicID,
+		interviewScheduledTopicID: interviewScheduledTopicID,
+	}
 }
 
 func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
@@ -122,8 +129,8 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if h.publisher != nil {
-		h.publisher.PublishJobCreated(pubsub.JobCreatedPayload{
+	if h.publisher != nil && h.jobCreatedTopicID != "" {
+		h.publisher.Publish(h.jobCreatedTopicID, pubsub.JobEventPayload{
 			UserID:      userID.String(),
 			JobID:       created.ID,
 			JobTitle:    created.JobTitle,
@@ -169,6 +176,16 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		slog.Error("update job", "id", id, "error", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
+	}
+
+	if req.Status == "interviewing" && h.publisher != nil && h.interviewScheduledTopicID != "" {
+		h.publisher.Publish(h.interviewScheduledTopicID, pubsub.JobEventPayload{
+			UserID:      userID.String(),
+			JobID:       updated.ID,
+			JobTitle:    updated.JobTitle,
+			CompanyName: updated.CompanyName,
+			TraceID:     r.Header.Get("X-Trace-ID"),
+		})
 	}
 
 	w.Header().Set("Content-Type", "application/json")
