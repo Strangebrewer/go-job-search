@@ -178,10 +178,10 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.Debug("update job", "interview topic", h.interviewScheduledTopicID)
+	slog.Info("update job", "interview topic", h.interviewScheduledTopicID)
 
 	if req.Status == "interviewing" && h.publisher != nil && h.interviewScheduledTopicID != "" {
-		slog.Debug("update job", "inside-if-statement", true)
+		slog.Info("update job", "inside-if-statement", true)
 		h.publisher.Publish(h.interviewScheduledTopicID, pubsub.JobEventPayload{
 			UserID:      userID.String(),
 			JobID:       updated.ID,
