@@ -17,6 +17,7 @@ type Config struct {
 	PubSubProjectID                 string
 	PubSubJobCreatedTopicID         string
 	PubSubInterviewScheduledTopicID string
+	PubSubRubeOwidTopicID           string
 }
 
 func parseOrigins(s string) []string {
@@ -41,5 +42,6 @@ func Load() *Config {
 		PubSubProjectID:                 os.Getenv("PUBSUB_PROJECT_ID"),
 		PubSubJobCreatedTopicID:         "job-created",
 		PubSubInterviewScheduledTopicID: "job-interview-scheduled",
+		PubSubRubeOwidTopicID:           "rube-owid",
 	}
 }

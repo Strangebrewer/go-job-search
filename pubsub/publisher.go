@@ -20,6 +20,13 @@ type JobEventPayload struct {
 	TraceID     string `json:"traceId"`
 }
 
+type RubeOwidEventPayload struct {
+	UserId  string `json:"userId"`
+	Link    string `json:"link"`
+	Title   string `json:"title"`
+	TraceID string `json:"traceId"`
+}
+
 func NewPublisher(ctx context.Context, projectID string) (*Publisher, error) {
 	client, err := gcppubsub.NewClient(ctx, projectID)
 	if err != nil {
