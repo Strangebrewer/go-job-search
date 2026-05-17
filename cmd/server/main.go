@@ -66,6 +66,7 @@ func main() {
 		Publisher:                 publisher,
 		JobCreatedTopicID:         cfg.PubSubJobCreatedTopicID,
 		InterviewScheduledTopicID: cfg.PubSubInterviewScheduledTopicID,
+		PubSubRubeOwidTopicID:     cfg.PubSubRubeOwidTopicID,
 	}
 
 	port := cfg.Port
