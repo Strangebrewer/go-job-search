@@ -69,7 +69,7 @@ func TestRecruiterStore_Create(t *testing.T) {
 		Rating:  4,
 	}
 
-	r, err := testStore.Create(ctx, userID, req)
+	r, err := testStore.Create(ctx, userID, req, nil)
 
 	require.NoError(t, err)
 	assert.NotEmpty(t, r.ID)
@@ -86,11 +86,11 @@ func TestRecruiterStore_List(t *testing.T) {
 	userID := uuid.New()
 	otherUserID := uuid.New()
 
-	_, err := testStore.Create(ctx, userID, recruiter.CreateRecruiterRequest{Name: "Alpha"})
+	_, err := testStore.Create(ctx, userID, recruiter.CreateRecruiterRequest{Name: "Alpha"}, nil)
 	require.NoError(t, err)
-	_, err = testStore.Create(ctx, userID, recruiter.CreateRecruiterRequest{Name: "Beta"})
+	_, err = testStore.Create(ctx, userID, recruiter.CreateRecruiterRequest{Name: "Beta"}, nil)
 	require.NoError(t, err)
-	_, err = testStore.Create(ctx, otherUserID, recruiter.CreateRecruiterRequest{Name: "Other"})
+	_, err = testStore.Create(ctx, otherUserID, recruiter.CreateRecruiterRequest{Name: "Other"}, nil)
 	require.NoError(t, err)
 
 	results, err := testStore.List(ctx, userID)
@@ -106,7 +106,7 @@ func TestRecruiterStore_GetByID(t *testing.T) {
 	ctx := context.Background()
 	userID := uuid.New()
 
-	created, err := testStore.Create(ctx, userID, recruiter.CreateRecruiterRequest{Name: "Get Me"})
+	created, err := testStore.Create(ctx, userID, recruiter.CreateRecruiterRequest{Name: "Get Me"}, nil)
 	require.NoError(t, err)
 
 	found, err := testStore.GetByID(ctx, mustParseUUID(t, created.ID), userID)
@@ -128,7 +128,7 @@ func TestRecruiterStore_GetByID_WrongUser(t *testing.T) {
 	ctx := context.Background()
 	userID := uuid.New()
 
-	created, err := testStore.Create(ctx, userID, recruiter.CreateRecruiterRequest{Name: "Wrong User"})
+	created, err := testStore.Create(ctx, userID, recruiter.CreateRecruiterRequest{Name: "Wrong User"}, nil)
 	require.NoError(t, err)
 
 	_, err = testStore.GetByID(ctx, mustParseUUID(t, created.ID), uuid.New())
@@ -140,7 +140,7 @@ func TestRecruiterStore_Update(t *testing.T) {
 	ctx := context.Background()
 	userID := uuid.New()
 
-	created, err := testStore.Create(ctx, userID, recruiter.CreateRecruiterRequest{Name: "Before"})
+	created, err := testStore.Create(ctx, userID, recruiter.CreateRecruiterRequest{Name: "Before"}, nil)
 	require.NoError(t, err)
 
 	updated, err := testStore.Update(ctx, mustParseUUID(t, created.ID), userID, recruiter.UpdateRecruiterRequest{
@@ -162,7 +162,7 @@ func TestRecruiterStore_Delete(t *testing.T) {
 	ctx := context.Background()
 	userID := uuid.New()
 
-	created, err := testStore.Create(ctx, userID, recruiter.CreateRecruiterRequest{Name: "Delete Me"})
+	created, err := testStore.Create(ctx, userID, recruiter.CreateRecruiterRequest{Name: "Delete Me"}, nil)
 	require.NoError(t, err)
 
 	err = testStore.Delete(ctx, mustParseUUID(t, created.ID), userID)
@@ -184,14 +184,14 @@ func TestRecruiterStore_Delete_BlockedByJobs(t *testing.T) {
 	ctx := context.Background()
 	userID := uuid.New()
 
-	r, err := testStore.Create(ctx, userID, recruiter.CreateRecruiterRequest{Name: "Has Jobs"})
+	r, err := testStore.Create(ctx, userID, recruiter.CreateRecruiterRequest{Name: "Has Jobs"}, nil)
 	require.NoError(t, err)
 
 	_, err = testJobStore.Create(ctx, userID, job.CreateJobRequest{
 		RecruiterID: r.ID,
 		JobTitle:    "Engineer",
 		CompanyName: "Test Co",
-	})
+	}, nil)
 	require.NoError(t, err)
 
 	err = testStore.Delete(ctx, mustParseUUID(t, r.ID), userID)

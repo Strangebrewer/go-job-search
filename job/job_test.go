@@ -52,7 +52,7 @@ func TestMain(m *testing.M) {
 	r, err := recruiterStore.Create(ctx, seedUserID, recruiter.CreateRecruiterRequest{
 		Name:    "Seed Recruiter",
 		Company: "Seed Co",
-	})
+	}, nil)
 	if err != nil {
 		log.Fatalf("failed to create seed recruiter: %v", err)
 	}
@@ -88,7 +88,7 @@ func TestJobStore_Create(t *testing.T) {
 	ctx := context.Background()
 
 	req := seedJob(t)
-	j, err := testStore.Create(ctx, seedUserID, req)
+	j, err := testStore.Create(ctx, seedUserID, req, nil)
 
 	require.NoError(t, err)
 	assert.NotEmpty(t, j.ID)
@@ -107,7 +107,7 @@ func TestJobStore_Create_RequiresRecruiter(t *testing.T) {
 	req := seedJob(t)
 	req.RecruiterID = ""
 
-	_, err := testStore.Create(ctx, seedUserID, req)
+	_, err := testStore.Create(ctx, seedUserID, req, nil)
 
 	assert.ErrorIs(t, err, job.ErrInvalidRecruiter)
 }
@@ -118,7 +118,7 @@ func TestJobStore_Create_InvalidRecruiterID(t *testing.T) {
 	req := seedJob(t)
 	req.RecruiterID = uuid.New().String() // valid UUID but doesn't exist in DB
 
-	_, err := testStore.Create(ctx, seedUserID, req)
+	_, err := testStore.Create(ctx, seedUserID, req, nil)
 
 	assert.ErrorIs(t, err, job.ErrInvalidRecruiter)
 }
@@ -126,7 +126,7 @@ func TestJobStore_Create_InvalidRecruiterID(t *testing.T) {
 func TestJobStore_GetByID(t *testing.T) {
 	ctx := context.Background()
 
-	created, err := testStore.Create(ctx, seedUserID, seedJob(t))
+	created, err := testStore.Create(ctx, seedUserID, seedJob(t), nil)
 	require.NoError(t, err)
 
 	found, err := testStore.GetByID(ctx, mustParseUUID(t, created.ID), seedUserID)
@@ -146,7 +146,7 @@ func TestJobStore_GetByID_NotFound(t *testing.T) {
 func TestJobStore_GetByID_WrongUser(t *testing.T) {
 	ctx := context.Background()
 
-	created, err := testStore.Create(ctx, seedUserID, seedJob(t))
+	created, err := testStore.Create(ctx, seedUserID, seedJob(t), nil)
 	require.NoError(t, err)
 
 	_, err = testStore.GetByID(ctx, mustParseUUID(t, created.ID), uuid.New())
@@ -163,7 +163,7 @@ func TestJobStore_List(t *testing.T) {
 			RecruiterID: seedRecruiterID,
 			JobTitle:    "Engineer",
 			CompanyName: "Co",
-		})
+		}, nil)
 		require.NoError(t, err)
 	}
 
@@ -185,14 +185,14 @@ func TestJobStore_List_FilterByStatus(t *testing.T) {
 		JobTitle:    "Dev",
 		CompanyName: "Co",
 		Status:      "interviewing",
-	})
+	}, nil)
 	require.NoError(t, err)
 	_, err = testStore.Create(ctx, userID, job.CreateJobRequest{
 		RecruiterID: seedRecruiterID,
 		JobTitle:    "Dev",
 		CompanyName: "Co",
 		Status:      "applied",
-	})
+	}, nil)
 	require.NoError(t, err)
 
 	results, err := testStore.List(ctx, userID, job.JobFilter{Status: "interviewing"})
@@ -210,14 +210,14 @@ func TestJobStore_List_ExcludesArchivedByDefault(t *testing.T) {
 		RecruiterID: seedRecruiterID,
 		JobTitle:    "Active",
 		CompanyName: "Co",
-	})
+	}, nil)
 	require.NoError(t, err)
 
 	archived, err := testStore.Create(ctx, userID, job.CreateJobRequest{
 		RecruiterID: seedRecruiterID,
 		JobTitle:    "Archived",
 		CompanyName: "Co",
-	})
+	}, nil)
 	require.NoError(t, err)
 
 	_, err = testStore.Update(ctx, mustParseUUID(t, archived.ID), userID, job.UpdateJobRequest{
@@ -242,7 +242,7 @@ func TestJobStore_List_ExcludesArchivedByDefault(t *testing.T) {
 func TestJobStore_Update(t *testing.T) {
 	ctx := context.Background()
 
-	created, err := testStore.Create(ctx, seedUserID, seedJob(t))
+	created, err := testStore.Create(ctx, seedUserID, seedJob(t), nil)
 	require.NoError(t, err)
 
 	updated, err := testStore.Update(ctx, mustParseUUID(t, created.ID), seedUserID, job.UpdateJobRequest{
@@ -277,7 +277,7 @@ func TestJobStore_Update_NotFound(t *testing.T) {
 func TestJobStore_Delete(t *testing.T) {
 	ctx := context.Background()
 
-	created, err := testStore.Create(ctx, seedUserID, seedJob(t))
+	created, err := testStore.Create(ctx, seedUserID, seedJob(t), nil)
 	require.NoError(t, err)
 
 	err = testStore.Delete(ctx, mustParseUUID(t, created.ID), seedUserID)
