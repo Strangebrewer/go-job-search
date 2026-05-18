@@ -16,4 +16,5 @@ type pubSubMessageBody struct {
 type demoRegisteredPayload struct {
 	UserID    string    `json:"userId"`
 	ExpiresAt time.Time `json:"expiresAt"`
+	TraceID   string    `json:"traceId"`
 }

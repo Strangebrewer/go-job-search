@@ -34,7 +34,7 @@ func New(addr string, allowedOrigins []string, application *app.Application, aut
 		registerRoutes(r, application, authMiddleware)
 	})
 	r.Mount("/rube", rube.Routes(application.Tracer, application.Publisher, application.PubSubRubeOwidTopicID))
-	r.Mount("/pubsub", demo.Routes(application.RecruiterStore, application.JobStore, application.PubSubAudience))
+	r.Mount("/pubsub", demo.Routes(application.RecruiterStore, application.JobStore, application.Tracer, application.PubSubAudience))
 
 	return &Server{
 		HTTPServer: &http.Server{

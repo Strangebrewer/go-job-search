@@ -6,11 +6,12 @@ import (
 	"github.com/Strangebrewer/go-job-search/job"
 	"github.com/Strangebrewer/go-job-search/middleware"
 	"github.com/Strangebrewer/go-job-search/recruiter"
+	"github.com/Strangebrewer/go-job-search/tracer"
 )
 
-func Routes(recruiterStore *recruiter.Store, jobStore *job.Store, audience string) chi.Router {
+func Routes(recruiterStore *recruiter.Store, jobStore *job.Store, tc *tracer.Client, audience string) chi.Router {
 	r := chi.NewRouter()
-	h := NewHandler(recruiterStore, jobStore)
+	h := NewHandler(recruiterStore, jobStore, tc)
 	r.With(middleware.RequirePubSubOIDC(audience)).Post("/demo-registered", h.HandleDemoRegistered)
 	return r
 }

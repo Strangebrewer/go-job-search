@@ -12,15 +12,17 @@ import (
 
 	"github.com/Strangebrewer/go-job-search/job"
 	"github.com/Strangebrewer/go-job-search/recruiter"
+	"github.com/Strangebrewer/go-job-search/tracer"
 )
 
 type Handler struct {
 	recruiterStore *recruiter.Store
 	jobStore       *job.Store
+	tracer         *tracer.Client
 }
 
-func NewHandler(recruiterStore *recruiter.Store, jobStore *job.Store) *Handler {
-	return &Handler{recruiterStore: recruiterStore, jobStore: jobStore}
+func NewHandler(recruiterStore *recruiter.Store, jobStore *job.Store, tc *tracer.Client) *Handler {
+	return &Handler{recruiterStore: recruiterStore, jobStore: jobStore, tracer: tc}
 }
 
 func (h *Handler) HandleDemoRegistered(w http.ResponseWriter, r *http.Request) {
@@ -52,16 +54,29 @@ func (h *Handler) HandleDemoRegistered(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	start := time.Now()
 	ctx := r.Context()
 	recruiterIDs, err := h.seedRecruiters(ctx, userID, payload.ExpiresAt)
 	if err != nil {
 		slog.Error("demo-registered: seed recruiters", "userId", userID, "error", err)
+		if h.tracer != nil && payload.TraceID != "" {
+			h.tracer.SendErrorSpan(payload.TraceID, "demo seed", err.Error(), start, time.Now())
+		}
 		w.WriteHeader(http.StatusOK)
 		return
 	}
 
 	if err := h.seedJobs(ctx, userID, recruiterIDs, payload.ExpiresAt); err != nil {
 		slog.Error("demo-registered: seed jobs", "userId", userID, "error", err)
+		if h.tracer != nil && payload.TraceID != "" {
+			h.tracer.SendErrorSpan(payload.TraceID, "demo seed", err.Error(), start, time.Now())
+		}
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	if h.tracer != nil && payload.TraceID != "" {
+		h.tracer.SendSpan(payload.TraceID, "demo seed", start, time.Now())
 	}
 
 	w.WriteHeader(http.StatusOK)
