@@ -26,6 +26,10 @@ func Connect(ctx context.Context, mongoURI string) (*mongo.Client, *mongo.Databa
 	_, err = jobs.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		{Keys: bson.D{{Key: "userId", Value: 1}}},
 		{Keys: bson.D{{Key: "recruiterId", Value: 1}}},
+		{
+			Keys:    bson.D{{Key: "expiresAt", Value: 1}},
+			Options: options.Index().SetExpireAfterSeconds(0).SetSparse(true),
+		},
 	})
 	if err != nil {
 		_ = client.Disconnect(ctx)
@@ -35,6 +39,10 @@ func Connect(ctx context.Context, mongoURI string) (*mongo.Client, *mongo.Databa
 	recruiters := db.Collection("recruiters")
 	_, err = recruiters.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		{Keys: bson.D{{Key: "userId", Value: 1}}},
+		{
+			Keys:    bson.D{{Key: "expiresAt", Value: 1}},
+			Options: options.Index().SetExpireAfterSeconds(0).SetSparse(true),
+		},
 	})
 	if err != nil {
 		_ = client.Disconnect(ctx)

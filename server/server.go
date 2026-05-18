@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/Strangebrewer/go-job-search/app"
+	"github.com/Strangebrewer/go-job-search/demo"
 	"github.com/Strangebrewer/go-job-search/middleware"
 	"github.com/Strangebrewer/go-job-search/rube"
 	"github.com/go-chi/chi/v5"
@@ -33,6 +34,7 @@ func New(addr string, allowedOrigins []string, application *app.Application, aut
 		registerRoutes(r, application, authMiddleware)
 	})
 	r.Mount("/rube", rube.Routes(application.Tracer, application.Publisher, application.PubSubRubeOwidTopicID))
+	r.Mount("/pubsub", demo.Routes(application.RecruiterStore, application.JobStore, application.PubSubAudience))
 
 	return &Server{
 		HTTPServer: &http.Server{

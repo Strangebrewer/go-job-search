@@ -15,6 +15,7 @@ type Config struct {
 	TracerURL                       string
 	TracerServiceKey                string
 	PubSubProjectID                 string
+	PubSubAudience                  string
 	PubSubJobCreatedTopicID         string
 	PubSubInterviewScheduledTopicID string
 	PubSubRubeOwidTopicID           string
@@ -40,6 +41,7 @@ func Load() *Config {
 		TracerURL:                       os.Getenv("TRACER_SERVICE_URL"),
 		TracerServiceKey:                os.Getenv("TRACER_SERVICE_KEY"),
 		PubSubProjectID:                 os.Getenv("PUBSUB_PROJECT_ID"),
+		PubSubAudience:                  os.Getenv("PUBSUB_AUDIENCE"),
 		PubSubJobCreatedTopicID:         "job-created",
 		PubSubInterviewScheduledTopicID: "job-interview-scheduled",
 		PubSubRubeOwidTopicID:           "rube-owid",

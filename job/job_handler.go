@@ -118,7 +118,20 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	created, err := h.store.Create(r.Context(), userID, req)
+	if middleware.IsDemoFromContext(r.Context()) {
+		count, err := h.store.CountByUser(r.Context(), userID)
+		if err != nil {
+			slog.Error("count jobs", "error", err)
+			http.Error(w, "internal server error", http.StatusInternalServerError)
+			return
+		}
+		if count >= 20 {
+			http.Error(w, "demo job limit reached", http.StatusForbidden)
+			return
+		}
+	}
+
+	created, err := h.store.Create(r.Context(), userID, req, nil)
 	if err != nil {
 		if errors.Is(err, ErrInvalidRecruiter) {
 			http.Error(w, "invalid recruiter id", http.StatusBadRequest)

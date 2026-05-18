@@ -18,28 +18,29 @@ var (
 )
 
 type jobDoc struct {
-	ID                string    `bson:"_id"`
-	UserID            string    `bson:"userId"`
-	RecruiterID       string    `bson:"recruiterId"`
-	JobTitle          string    `bson:"jobTitle"`
-	WorkFrom          string    `bson:"workFrom"`
-	DateApplied       string    `bson:"dateApplied"`
-	CompanyName       string    `bson:"companyName"`
-	CompanyAddress    string    `bson:"companyAddress"`
-	CompanyCity       string    `bson:"companyCity"`
-	CompanyState      string    `bson:"companyState"`
-	PointOfContact    string    `bson:"pointOfContact"`
-	PocTitle          string    `bson:"pocTitle"`
-	Interviews        []string  `bson:"interviews"`
-	Comments          []string  `bson:"comments"`
-	Status            string    `bson:"status"`
-	Archived          bool      `bson:"archived"`
-	PrimaryLink       string    `bson:"primaryLink"`
-	PrimaryLinkText   string    `bson:"primaryLinkText"`
-	SecondaryLink     string    `bson:"secondaryLink"`
-	SecondaryLinkText string    `bson:"secondaryLinkText"`
-	CreatedAt         time.Time `bson:"createdAt"`
-	UpdatedAt         time.Time `bson:"updatedAt"`
+	ID                string     `bson:"_id"`
+	UserID            string     `bson:"userId"`
+	RecruiterID       string     `bson:"recruiterId"`
+	JobTitle          string     `bson:"jobTitle"`
+	WorkFrom          string     `bson:"workFrom"`
+	DateApplied       string     `bson:"dateApplied"`
+	CompanyName       string     `bson:"companyName"`
+	CompanyAddress    string     `bson:"companyAddress"`
+	CompanyCity       string     `bson:"companyCity"`
+	CompanyState      string     `bson:"companyState"`
+	PointOfContact    string     `bson:"pointOfContact"`
+	PocTitle          string     `bson:"pocTitle"`
+	Interviews        []string   `bson:"interviews"`
+	Comments          []string   `bson:"comments"`
+	Status            string     `bson:"status"`
+	Archived          bool       `bson:"archived"`
+	PrimaryLink       string     `bson:"primaryLink"`
+	PrimaryLinkText   string     `bson:"primaryLinkText"`
+	SecondaryLink     string     `bson:"secondaryLink"`
+	SecondaryLinkText string     `bson:"secondaryLinkText"`
+	ExpiresAt         *time.Time `bson:"expiresAt,omitempty"`
+	CreatedAt         time.Time  `bson:"createdAt"`
+	UpdatedAt         time.Time  `bson:"updatedAt"`
 }
 
 func (d jobDoc) toDomain() Job {
@@ -72,6 +73,7 @@ func (d jobDoc) toDomain() Job {
 		PrimaryLinkText:   d.PrimaryLinkText,
 		SecondaryLink:     d.SecondaryLink,
 		SecondaryLinkText: d.SecondaryLinkText,
+		ExpiresAt:         d.ExpiresAt,
 		CreatedAt:         d.CreatedAt,
 		UpdatedAt:         d.UpdatedAt,
 	}
@@ -89,7 +91,7 @@ func NewStore(db *mongo.Database) *Store {
 	}
 }
 
-func (s *Store) Create(ctx context.Context, userID uuid.UUID, req CreateJobRequest) (Job, error) {
+func (s *Store) Create(ctx context.Context, userID uuid.UUID, req CreateJobRequest, expiresAt *time.Time) (Job, error) {
 	if req.RecruiterID == "" {
 		return Job{}, ErrInvalidRecruiter
 	}
@@ -139,6 +141,7 @@ func (s *Store) Create(ctx context.Context, userID uuid.UUID, req CreateJobReque
 		PrimaryLinkText:   req.PrimaryLinkText,
 		SecondaryLink:     req.SecondaryLink,
 		SecondaryLinkText: req.SecondaryLinkText,
+		ExpiresAt:         expiresAt,
 		CreatedAt:         now,
 		UpdatedAt:         now,
 	}
@@ -285,6 +288,14 @@ func (s *Store) Update(ctx context.Context, id, userID uuid.UUID, req UpdateJobR
 	}
 
 	return doc.toDomain(), nil
+}
+
+func (s *Store) CountByUser(ctx context.Context, userID uuid.UUID) (int64, error) {
+	count, err := s.col.CountDocuments(ctx, bson.D{{Key: "userId", Value: userID.String()}})
+	if err != nil {
+		return 0, fmt.Errorf("count jobs: %w", err)
+	}
+	return count, nil
 }
 
 func (s *Store) Delete(ctx context.Context, id, userID uuid.UUID) error {

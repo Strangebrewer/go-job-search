@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"log/slog"
 
-	gcppubsub "cloud.google.com/go/pubsub"
+	gcppubsub "cloud.google.com/go/pubsub/v2"
 )
 
 type Publisher struct {
@@ -43,7 +43,7 @@ func (p *Publisher) Publish(topicID string, payload any) {
 			return
 		}
 		ctx := context.Background()
-		result := p.client.Topic(topicID).Publish(ctx, &gcppubsub.Message{Data: data})
+		result := p.client.Publisher(topicID).Publish(ctx, &gcppubsub.Message{Data: data})
 		if _, err := result.Get(ctx); err != nil {
 			slog.Error("pubsub publish", "topic", topicID, "error", err)
 		}
@@ -51,5 +51,7 @@ func (p *Publisher) Publish(topicID string, payload any) {
 }
 
 func (p *Publisher) Close() {
-	p.client.Close()
+	if err := p.client.Close(); err != nil {
+		slog.Error("pubsub close", "error", err)
+	}
 }

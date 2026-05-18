@@ -15,4 +15,5 @@ type Application struct {
 	JobCreatedTopicID         string
 	InterviewScheduledTopicID string
 	PubSubRubeOwidTopicID     string
+	PubSubAudience            string
 }

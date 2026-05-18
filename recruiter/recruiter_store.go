@@ -19,17 +19,18 @@ var (
 )
 
 type recruiterDoc struct {
-	ID        string    `bson:"_id"`
-	UserID    string    `bson:"userId"`
-	Name      string    `bson:"name"`
-	Company   string    `bson:"company"`
-	Phone     string    `bson:"phone"`
-	Email     string    `bson:"email"`
-	Rating    int32     `bson:"rating"`
-	Comments  []string  `bson:"comments"`
-	Archived  bool      `bson:"archived"`
-	CreatedAt time.Time `bson:"createdAt"`
-	UpdatedAt time.Time `bson:"updatedAt"`
+	ID        string     `bson:"_id"`
+	UserID    string     `bson:"userId"`
+	Name      string     `bson:"name"`
+	Company   string     `bson:"company"`
+	Phone     string     `bson:"phone"`
+	Email     string     `bson:"email"`
+	Rating    int32      `bson:"rating"`
+	Comments  []string   `bson:"comments"`
+	Archived  bool       `bson:"archived"`
+	ExpiresAt *time.Time `bson:"expiresAt,omitempty"`
+	CreatedAt time.Time  `bson:"createdAt"`
+	UpdatedAt time.Time  `bson:"updatedAt"`
 }
 
 func (d recruiterDoc) toDomain() Recruiter {
@@ -47,6 +48,7 @@ func (d recruiterDoc) toDomain() Recruiter {
 		Rating:    d.Rating,
 		Comments:  comments,
 		Archived:  d.Archived,
+		ExpiresAt: d.ExpiresAt,
 		CreatedAt: d.CreatedAt,
 		UpdatedAt: d.UpdatedAt,
 	}
@@ -64,7 +66,7 @@ func NewStore(db *mongo.Database) *Store {
 	}
 }
 
-func (s *Store) Create(ctx context.Context, userID uuid.UUID, req CreateRecruiterRequest) (Recruiter, error) {
+func (s *Store) Create(ctx context.Context, userID uuid.UUID, req CreateRecruiterRequest, expiresAt *time.Time) (Recruiter, error) {
 	id, err := uuid.NewV7()
 	if err != nil {
 		return Recruiter{}, fmt.Errorf("generate id: %w", err)
@@ -81,6 +83,7 @@ func (s *Store) Create(ctx context.Context, userID uuid.UUID, req CreateRecruite
 		Rating:    req.Rating,
 		Comments:  []string{},
 		Archived:  false,
+		ExpiresAt: expiresAt,
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
@@ -90,6 +93,14 @@ func (s *Store) Create(ctx context.Context, userID uuid.UUID, req CreateRecruite
 	}
 
 	return doc.toDomain(), nil
+}
+
+func (s *Store) CountByUser(ctx context.Context, userID uuid.UUID) (int64, error) {
+	count, err := s.col.CountDocuments(ctx, bson.D{{Key: "userId", Value: userID.String()}})
+	if err != nil {
+		return 0, fmt.Errorf("count recruiters: %w", err)
+	}
+	return count, nil
 }
 
 func (s *Store) GetByID(ctx context.Context, id, userID uuid.UUID) (Recruiter, error) {
