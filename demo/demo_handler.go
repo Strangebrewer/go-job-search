@@ -116,14 +116,15 @@ func (h *Handler) seedJobs(ctx context.Context, userID uuid.UUID, recruiterIDs [
 	type seed struct {
 		title, company string
 		recruiterIdx   int
+		dateApplied    string
 	}
 	seeds := []seed{
-		{"Senior Software Engineer", "Helios Systems", 0},
-		{"Backend Developer", "Crestline Tech", 0},
-		{"Platform Engineer", "Vortex Labs", 0},
-		{"Software Engineer II", "Meridian Software", 1},
-		{"Full Stack Developer", "Pinewave Digital", 1},
-		{"API Developer", "Stratum IO", 1},
+		{"Senior Software Engineer", "Helios Systems", 0, "2026-02-10"},
+		{"Backend Developer", "Crestline Tech", 0, "2026-02-18"},
+		{"Platform Engineer", "Vortex Labs", 0, "2026-03-04"},
+		{"Software Engineer II", "Meridian Software", 1, "2026-03-19"},
+		{"Full Stack Developer", "Pinewave Digital", 1, "2026-04-02"},
+		{"API Developer", "Stratum IO", 1, "2026-04-14"},
 	}
 
 	for _, s := range seeds {
@@ -131,6 +132,8 @@ func (h *Handler) seedJobs(ctx context.Context, userID uuid.UUID, recruiterIDs [
 			RecruiterID: recruiterIDs[s.recruiterIdx].String(),
 			JobTitle:    s.title,
 			CompanyName: s.company,
+			DateApplied: s.dateApplied,
+			Status:      "applied",
 		}
 		if _, err := h.jobStore.Create(ctx, userID, req, &expiresAt); err != nil {
 			return err
