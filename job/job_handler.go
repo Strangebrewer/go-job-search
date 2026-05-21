@@ -149,6 +149,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 			JobTitle:    created.JobTitle,
 			CompanyName: created.CompanyName,
 			TraceID:     r.Header.Get("X-Trace-ID"),
+			ExpiresAt:   middleware.ExpiresAtFromContext(r.Context()),
 		})
 	}
 
@@ -198,6 +199,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 			JobTitle:    updated.JobTitle,
 			CompanyName: updated.CompanyName,
 			TraceID:     r.Header.Get("X-Trace-ID"),
+			ExpiresAt:   middleware.ExpiresAtFromContext(r.Context()),
 		})
 	}
 

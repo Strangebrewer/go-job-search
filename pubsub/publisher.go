@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"log/slog"
+	"time"
 
 	gcppubsub "cloud.google.com/go/pubsub/v2"
 )
@@ -13,18 +14,20 @@ type Publisher struct {
 }
 
 type JobEventPayload struct {
-	UserID      string `json:"userId"`
-	JobID       string `json:"jobId"`
-	JobTitle    string `json:"jobTitle"`
-	CompanyName string `json:"companyName"`
-	TraceID     string `json:"traceId"`
+	UserID      string     `json:"userId"`
+	JobID       string     `json:"jobId"`
+	JobTitle    string     `json:"jobTitle"`
+	CompanyName string     `json:"companyName"`
+	TraceID     string     `json:"traceId"`
+	ExpiresAt   *time.Time `json:"expiresAt,omitempty"`
 }
 
 type RubeOwidEventPayload struct {
-	UserId  string `json:"userId"`
-	Link    string `json:"link"`
-	Title   string `json:"title"`
-	TraceID string `json:"traceId"`
+	UserId    string     `json:"userId"`
+	Link      string     `json:"link"`
+	Title     string     `json:"title"`
+	TraceID   string     `json:"traceId"`
+	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
 }
 
 func NewPublisher(ctx context.Context, projectID string) (*Publisher, error) {

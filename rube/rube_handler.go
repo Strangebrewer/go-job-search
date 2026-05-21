@@ -12,9 +12,10 @@ import (
 )
 
 type ChainRequest struct {
-	UserId string `json:"userId"`
-	Title  string `json:"title"`
-	Link   string `json:"link"`
+	UserId    string     `json:"userId"`
+	Title     string     `json:"title"`
+	Link      string     `json:"link"`
+	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
 }
 
 type ChainResponse struct {
@@ -58,10 +59,11 @@ func (h *Handler) Chain(w http.ResponseWriter, r *http.Request) {
 
 	if h.publisher != nil && h.rubeOwidTopicId != "" {
 		h.publisher.Publish(h.rubeOwidTopicId, pubsub.RubeOwidEventPayload{
-			UserId:  req.UserId,
-			Link:    link,
-			Title:   title,
-			TraceID: traceID,
+			UserId:    req.UserId,
+			Link:      link,
+			Title:     title,
+			TraceID:   traceID,
+			ExpiresAt: req.ExpiresAt,
 		})
 	}
 
