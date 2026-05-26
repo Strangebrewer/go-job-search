@@ -5,7 +5,9 @@ import (
 	"net/http"
 
 	"github.com/Strangebrewer/go-job-search/app"
+	"github.com/Strangebrewer/go-job-search/demo"
 	"github.com/Strangebrewer/go-job-search/middleware"
+	"github.com/Strangebrewer/go-job-search/rube"
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -21,14 +23,18 @@ func New(addr string, allowedOrigins []string, application *app.Application, aut
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins: allowedOrigins,
 		AllowedMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowedHeaders: []string{"Accept", "Authorization", "Content-Type"},
+		AllowedHeaders: []string{"Accept", "Authorization", "Content-Type", "X-Trace-ID"},
 		MaxAge:         300,
 	}))
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Logger(slog.Default()))
 	r.Use(chimiddleware.Recoverer)
-
-	registerRoutes(r, application, authMiddleware)
+	r.Group(func(r chi.Router) {
+		r.Use(middleware.Tracing(application.Tracer))
+		registerRoutes(r, application, authMiddleware)
+	})
+	r.Mount("/rube", rube.Routes(application.Tracer, application.Publisher, application.PubSubRubeOwidTopicID))
+	r.Mount("/pubsub", demo.Routes(application.RecruiterStore, application.JobStore, application.Tracer, application.PubSubAudience))
 
 	return &Server{
 		HTTPServer: &http.Server{

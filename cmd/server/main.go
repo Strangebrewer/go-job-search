@@ -13,9 +13,12 @@ import (
 	"github.com/Strangebrewer/go-job-search/app"
 	"github.com/Strangebrewer/go-job-search/config"
 	"github.com/Strangebrewer/go-job-search/db_connection"
-	"github.com/Strangebrewer/go-job-search/example"
+	"github.com/Strangebrewer/go-job-search/job"
 	"github.com/Strangebrewer/go-job-search/middleware"
+	"github.com/Strangebrewer/go-job-search/pubsub"
+	"github.com/Strangebrewer/go-job-search/recruiter"
 	"github.com/Strangebrewer/go-job-search/server"
+	"github.com/Strangebrewer/go-job-search/tracer"
 )
 
 func main() {
@@ -24,12 +27,17 @@ func main() {
 
 	cfg := config.Load()
 
-	pool, err := db_connection.NewPool(cfg.DatabaseURL)
+	ctx := context.Background()
+	client, db, err := db_connection.Connect(ctx, cfg.DatabaseURL, cfg.DBName)
 	if err != nil {
 		slog.Error("failed to connect to database", "error", err)
 		os.Exit(1)
 	}
-	defer pool.Close()
+	defer func() {
+		if err := client.Disconnect(context.Background()); err != nil {
+			slog.Error("failed to disconnect from database", "error", err)
+		}
+	}()
 
 	authMiddleware, err := middleware.RequireAuth(cfg.JWTPublicKey)
 	if err != nil {
@@ -37,8 +45,29 @@ func main() {
 		os.Exit(1)
 	}
 
+	var tracerClient *tracer.Client
+	if cfg.TracerURL != "" && cfg.TracerServiceKey != "" {
+		tracerClient = tracer.NewClient(cfg.TracerURL, cfg.TracerServiceKey, "go-job-search")
+	}
+
+	var publisher *pubsub.Publisher
+	if cfg.PubSubProjectID != "" {
+		var err error
+		publisher, err = pubsub.NewPublisher(ctx, cfg.PubSubProjectID)
+		if err != nil {
+			slog.Warn("failed to initialize pubsub publisher", "error", err)
+		}
+	}
+
 	application := &app.Application{
-		ExampleStore: example.NewStore(pool),
+		JobStore:                  job.NewStore(db),
+		RecruiterStore:            recruiter.NewStore(db),
+		Tracer:                    tracerClient,
+		Publisher:                 publisher,
+		JobCreatedTopicID:         cfg.PubSubJobCreatedTopicID,
+		InterviewScheduledTopicID: cfg.PubSubInterviewScheduledTopicID,
+		PubSubRubeOwidTopicID:     cfg.PubSubRubeOwidTopicID,
+		PubSubAudience:            cfg.PubSubAudience,
 	}
 
 	port := cfg.Port
@@ -61,12 +90,16 @@ func main() {
 	<-quit
 
 	slog.Info("shutting down server")
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	if err := srv.HTTPServer.Shutdown(ctx); err != nil {
+	if err := srv.HTTPServer.Shutdown(shutdownCtx); err != nil {
 		slog.Error("server shutdown failed", "error", err)
 		os.Exit(1)
+	}
+
+	if publisher != nil {
+		publisher.Close()
 	}
 	slog.Info("server stopped")
 }

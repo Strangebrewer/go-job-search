@@ -4,18 +4,50 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
-func NewPool(databaseURL string) (*pgxpool.Pool, error) {
-	pool, err := pgxpool.New(context.Background(), databaseURL)
+func Connect(ctx context.Context, mongoURI, dbName string) (*mongo.Client, *mongo.Database, error) {
+	client, err := mongo.Connect(options.Client().ApplyURI(mongoURI))
 	if err != nil {
-		return nil, fmt.Errorf("db_connection: failed to create pool: %w", err)
+		return nil, nil, fmt.Errorf("db_connection: failed to connect: %w", err)
 	}
 
-	if err := pool.Ping(context.Background()); err != nil {
-		return nil, fmt.Errorf("db_connection: failed to ping database: %w", err)
+	if err := client.Ping(ctx, nil); err != nil {
+		_ = client.Disconnect(ctx)
+		return nil, nil, fmt.Errorf("db_connection: failed to ping: %w", err)
 	}
 
-	return pool, nil
+	db := client.Database(dbName)
+
+	jobs := db.Collection("jobs")
+	_, err = jobs.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{Keys: bson.D{{Key: "userId", Value: 1}}},
+		{Keys: bson.D{{Key: "recruiterId", Value: 1}}},
+		{
+			Keys:    bson.D{{Key: "expiresAt", Value: 1}},
+			Options: options.Index().SetExpireAfterSeconds(0).SetSparse(true),
+		},
+	})
+	if err != nil {
+		_ = client.Disconnect(ctx)
+		return nil, nil, fmt.Errorf("db_connection: failed to create jobs indexes: %w", err)
+	}
+
+	recruiters := db.Collection("recruiters")
+	_, err = recruiters.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{Keys: bson.D{{Key: "userId", Value: 1}}},
+		{
+			Keys:    bson.D{{Key: "expiresAt", Value: 1}},
+			Options: options.Index().SetExpireAfterSeconds(0).SetSparse(true),
+		},
+	})
+	if err != nil {
+		_ = client.Disconnect(ctx)
+		return nil, nil, fmt.Errorf("db_connection: failed to create recruiters indexes: %w", err)
+	}
+
+	return client, db, nil
 }

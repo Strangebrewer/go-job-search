@@ -1,0 +1,60 @@
+package pubsub
+
+import (
+	"context"
+	"encoding/json"
+	"log/slog"
+	"time"
+
+	gcppubsub "cloud.google.com/go/pubsub/v2"
+)
+
+type Publisher struct {
+	client *gcppubsub.Client
+}
+
+type JobEventPayload struct {
+	UserID      string     `json:"userId"`
+	JobID       string     `json:"jobId"`
+	JobTitle    string     `json:"jobTitle"`
+	CompanyName string     `json:"companyName"`
+	TraceID     string     `json:"traceId"`
+	ExpiresAt   *time.Time `json:"expiresAt,omitempty"`
+}
+
+type RubeOwidEventPayload struct {
+	UserId    string     `json:"userId"`
+	Link      string     `json:"link"`
+	Title     string     `json:"title"`
+	TraceID   string     `json:"traceId"`
+	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
+}
+
+func NewPublisher(ctx context.Context, projectID string) (*Publisher, error) {
+	client, err := gcppubsub.NewClient(ctx, projectID)
+	if err != nil {
+		return nil, err
+	}
+	return &Publisher{client: client}, nil
+}
+
+func (p *Publisher) Publish(topicID string, payload any) {
+	go func() {
+		data, err := json.Marshal(payload)
+		if err != nil {
+			slog.Error("pubsub marshal", "topic", topicID, "error", err)
+			return
+		}
+		ctx := context.Background()
+		result := p.client.Publisher(topicID).Publish(ctx, &gcppubsub.Message{Data: data})
+		if _, err := result.Get(ctx); err != nil {
+			slog.Error("pubsub publish", "topic", topicID, "error", err)
+		}
+	}()
+}
+
+func (p *Publisher) Close() {
+	if err := p.client.Close(); err != nil {
+		slog.Error("pubsub close", "error", err)
+	}
+}
