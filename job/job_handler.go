@@ -142,17 +142,6 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if h.publisher != nil && h.jobCreatedTopicID != "" {
-		h.publisher.Publish(h.jobCreatedTopicID, pubsub.JobEventPayload{
-			UserID:      userID.String(),
-			JobID:       created.ID,
-			JobTitle:    created.JobTitle,
-			CompanyName: created.CompanyName,
-			TraceID:     r.Header.Get("X-Trace-ID"),
-			ExpiresAt:   middleware.ExpiresAtFromContext(r.Context()),
-		})
-	}
-
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	_ = json.NewEncoder(w).Encode(created)
