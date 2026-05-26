@@ -16,15 +16,13 @@ import (
 type Handler struct {
 	store                     *Store
 	publisher                 *pubsub.Publisher
-	jobCreatedTopicID         string
 	interviewScheduledTopicID string
 }
 
-func NewHandler(store *Store, publisher *pubsub.Publisher, jobCreatedTopicID, interviewScheduledTopicID string) *Handler {
+func NewHandler(store *Store, publisher *pubsub.Publisher, interviewScheduledTopicID string) *Handler {
 	return &Handler{
 		store:                     store,
 		publisher:                 publisher,
-		jobCreatedTopicID:         jobCreatedTopicID,
 		interviewScheduledTopicID: interviewScheduledTopicID,
 	}
 }

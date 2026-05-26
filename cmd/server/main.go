@@ -64,7 +64,6 @@ func main() {
 		RecruiterStore:            recruiter.NewStore(db),
 		Tracer:                    tracerClient,
 		Publisher:                 publisher,
-		JobCreatedTopicID:         cfg.PubSubJobCreatedTopicID,
 		InterviewScheduledTopicID: cfg.PubSubInterviewScheduledTopicID,
 		PubSubRubeOwidTopicID:     cfg.PubSubRubeOwidTopicID,
 		PubSubAudience:            cfg.PubSubAudience,

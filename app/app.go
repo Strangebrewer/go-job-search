@@ -12,7 +12,6 @@ type Application struct {
 	RecruiterStore            *recruiter.Store
 	Tracer                    *tracer.Client
 	Publisher                 *pubsub.Publisher
-	JobCreatedTopicID         string
 	InterviewScheduledTopicID string
 	PubSubRubeOwidTopicID     string
 	PubSubAudience            string
