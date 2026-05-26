@@ -39,7 +39,7 @@ func TestMain(m *testing.M) {
 		log.Fatalf("failed to get connection string: %v", err)
 	}
 
-	_, db, err := db_connection.Connect(ctx, uri)
+	_, db, err := db_connection.Connect(ctx, uri, "job_search")
 	if err != nil {
 		log.Fatalf("failed to connect to database: %v", err)
 	}
