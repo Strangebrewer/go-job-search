@@ -101,15 +101,16 @@ func TestJobStore_Create(t *testing.T) {
 	assert.False(t, j.Archived)
 }
 
-func TestJobStore_Create_RequiresRecruiter(t *testing.T) {
+func TestJobStore_Create_WithoutRecruiter(t *testing.T) {
 	ctx := context.Background()
 
 	req := seedJob(t)
 	req.RecruiterID = ""
 
-	_, err := testStore.Create(ctx, seedUserID, req, nil)
+	j, err := testStore.Create(ctx, seedUserID, req, nil)
 
-	assert.ErrorIs(t, err, job.ErrInvalidRecruiter)
+	require.NoError(t, err)
+	assert.Empty(t, j.RecruiterID)
 }
 
 func TestJobStore_Create_InvalidRecruiterID(t *testing.T) {
