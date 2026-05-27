@@ -92,21 +92,19 @@ func NewStore(db *mongo.Database) *Store {
 }
 
 func (s *Store) Create(ctx context.Context, userID uuid.UUID, req CreateJobRequest, expiresAt *time.Time) (Job, error) {
-	if req.RecruiterID == "" {
-		return Job{}, ErrInvalidRecruiter
-	}
-	if _, err := uuid.Parse(req.RecruiterID); err != nil {
-		return Job{}, ErrInvalidRecruiter
-	}
-
-	count, err := s.recruiters.CountDocuments(ctx, bson.D{
-		{Key: "_id", Value: req.RecruiterID},
-	})
-	if err != nil {
-		return Job{}, fmt.Errorf("validate recruiter: %w", err)
-	}
-	if count == 0 {
-		return Job{}, ErrInvalidRecruiter
+	if req.RecruiterID != "" {
+		if _, err := uuid.Parse(req.RecruiterID); err != nil {
+			return Job{}, ErrInvalidRecruiter
+		}
+		count, err := s.recruiters.CountDocuments(ctx, bson.D{
+			{Key: "_id", Value: req.RecruiterID},
+		})
+		if err != nil {
+			return Job{}, fmt.Errorf("validate recruiter: %w", err)
+		}
+		if count == 0 {
+			return Job{}, ErrInvalidRecruiter
+		}
 	}
 
 	id, err := uuid.NewV7()
@@ -234,11 +232,10 @@ func (s *Store) List(ctx context.Context, userID uuid.UUID, f JobFilter) ([]Job,
 }
 
 func (s *Store) Update(ctx context.Context, id, userID uuid.UUID, req UpdateJobRequest) (Job, error) {
-	if req.RecruiterID == "" {
-		return Job{}, ErrInvalidRecruiter
-	}
-	if _, err := uuid.Parse(req.RecruiterID); err != nil {
-		return Job{}, ErrInvalidRecruiter
+	if req.RecruiterID != "" {
+		if _, err := uuid.Parse(req.RecruiterID); err != nil {
+			return Job{}, ErrInvalidRecruiter
+		}
 	}
 
 	interviews := req.Interviews

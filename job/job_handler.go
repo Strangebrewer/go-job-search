@@ -103,10 +103,6 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.RecruiterID == "" {
-		http.Error(w, "recruiter_id is required", http.StatusBadRequest)
-		return
-	}
 	if req.JobTitle == "" {
 		http.Error(w, "job_title is required", http.StatusBadRequest)
 		return
