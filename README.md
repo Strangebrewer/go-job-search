@@ -10,9 +10,7 @@ Job search tracking service for the personal-enterprise project. Manages job app
 
 - **Language**: Go
 - **Router**: [chi](https://github.com/go-chi/chi)
-- **Database**: Postgres via [pgx](https://github.com/jackc/pgx)
-- **Query generation**: [sqlc](https://sqlc.dev)
-- **Migrations**: [golang-migrate](https://github.com/golang-migrate/migrate)
+- **Database**: MongoDB
 - **Auth**: Stateless RSA JWT validation — tokens issued by go-auth, verified independently here
 - **Logging**: `slog` with JSON output
 
@@ -26,10 +24,6 @@ Copy `.env.example` to `.env.local` and fill in values.
 # Start the server
 go run ./cmd/server
 
-# Run migrations
-go run ./cmd/migrate up
-go run ./cmd/migrate down   # rolls back one step
-
 # Run tests
 go test ./...
 ```
@@ -38,9 +32,9 @@ go test ./...
 
 ## Environment Variables
 
-| Variable | Description |
-|---|---|
-| `PORT` | HTTP port (defaults to 8080) |
-| `DATABASE_URL` | Postgres connection string (`postgres://user:pass@host/job_search`) |
-| `JWT_PUBLIC_KEY` | RSA public key PEM for validating JWTs issued by go-auth |
-| `ALLOWED_ORIGINS` | Comma-separated list of allowed CORS origins |
+| Variable          | Description                                              |
+| ----------------- | -------------------------------------------------------- |
+| `PORT`            | HTTP port (defaults to 8080)                             |
+| `DATABASE_URL`    | MongoDB connection string                                |
+| `JWT_PUBLIC_KEY`  | RSA public key PEM for validating JWTs issued by go-auth |
+| `ALLOWED_ORIGINS` | Comma-separated list of allowed CORS origins             |
