@@ -190,6 +190,56 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(updated)
 }
 
+func (h *Handler) SetReported(w http.ResponseWriter, r *http.Request) {
+	userID, err := userIDFromContext(r)
+	if err != nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+
+	var req SetReportedRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.store.SetReported(r.Context(), id, userID, req.Reported); err != nil {
+		if errors.Is(err, ErrNotFound) {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		slog.Error("set job reported", "id", id, "error", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handler) ListCompanies(w http.ResponseWriter, r *http.Request) {
+	userID, err := userIDFromContext(r)
+	if err != nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	companies, err := h.store.ListCompanies(r.Context(), userID)
+	if err != nil {
+		slog.Error("list companies", "error", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(companies)
+}
+
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	userID, err := userIDFromContext(r)
 	if err != nil {

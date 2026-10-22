@@ -11,9 +11,11 @@ func Routes(store *Store, publisher *pubsub.Publisher, interviewScheduledTopicID
 	h := NewHandler(store, publisher, interviewScheduledTopicID)
 
 	r.Get("/", h.List)
+	r.Get("/companies", h.ListCompanies)
 	r.Get("/{id}", h.GetOne)
 	r.Post("/", h.Create)
 	r.Put("/{id}", h.Update)
+	r.Put("/{id}/reported", h.SetReported)
 	r.Delete("/{id}", h.Delete)
 
 	return r

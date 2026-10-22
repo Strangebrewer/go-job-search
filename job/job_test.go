@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -273,6 +274,130 @@ func TestJobStore_Update_NotFound(t *testing.T) {
 	})
 
 	assert.ErrorIs(t, err, job.ErrNotFound)
+}
+
+func createForCompany(t *testing.T, userID uuid.UUID, company string) job.Job {
+	t.Helper()
+	j, err := testStore.Create(context.Background(), userID, job.CreateJobRequest{
+		JobTitle:    "Engineer",
+		CompanyName: company,
+	}, nil)
+	require.NoError(t, err)
+	return j
+}
+
+func mustGet(t *testing.T, userID uuid.UUID, id string) job.Job {
+	t.Helper()
+	j, err := testStore.GetByID(context.Background(), mustParseUUID(t, id), userID)
+	require.NoError(t, err)
+	return j
+}
+
+func TestJobStore_SetReported_AppliesToCompanyCaseInsensitive(t *testing.T) {
+	ctx := context.Background()
+	userID := uuid.New()
+	otherUserID := uuid.New()
+
+	target := createForCompany(t, userID, "Stripe")
+	lower := createForCompany(t, userID, "stripe")
+	archived := createForCompany(t, userID, "STRIPE")
+	_, err := testStore.Update(ctx, mustParseUUID(t, archived.ID), userID, job.UpdateJobRequest{
+		JobTitle:    "Engineer",
+		CompanyName: "STRIPE",
+		Archived:    true,
+	})
+	require.NoError(t, err)
+	suffixed := createForCompany(t, userID, "Stripe Inc.")
+	unrelated := createForCompany(t, userID, "Other Co")
+	otherUser := createForCompany(t, otherUserID, "Stripe")
+
+	err = testStore.SetReported(ctx, mustParseUUID(t, target.ID), userID, true)
+	require.NoError(t, err)
+
+	assert.True(t, mustGet(t, userID, target.ID).Reported)
+	assert.True(t, mustGet(t, userID, lower.ID).Reported)
+	assert.True(t, mustGet(t, userID, archived.ID).Reported)
+	assert.False(t, mustGet(t, userID, suffixed.ID).Reported)
+	assert.False(t, mustGet(t, userID, unrelated.ID).Reported)
+	assert.False(t, mustGet(t, otherUserID, otherUser.ID).Reported)
+}
+
+func TestJobStore_SetReported_Unreport(t *testing.T) {
+	ctx := context.Background()
+	userID := uuid.New()
+
+	a := createForCompany(t, userID, "Stripe")
+	b := createForCompany(t, userID, "stripe")
+
+	require.NoError(t, testStore.SetReported(ctx, mustParseUUID(t, a.ID), userID, true))
+	require.NoError(t, testStore.SetReported(ctx, mustParseUUID(t, b.ID), userID, false))
+
+	assert.False(t, mustGet(t, userID, a.ID).Reported)
+	assert.False(t, mustGet(t, userID, b.ID).Reported)
+}
+
+func TestJobStore_SetReported_NotFound(t *testing.T) {
+	ctx := context.Background()
+
+	err := testStore.SetReported(ctx, uuid.New(), seedUserID, true)
+
+	assert.ErrorIs(t, err, job.ErrNotFound)
+}
+
+func TestJobStore_Update_PreservesReported(t *testing.T) {
+	ctx := context.Background()
+	userID := uuid.New()
+
+	j := createForCompany(t, userID, "Stripe")
+	require.NoError(t, testStore.SetReported(ctx, mustParseUUID(t, j.ID), userID, true))
+
+	updated, err := testStore.Update(ctx, mustParseUUID(t, j.ID), userID, job.UpdateJobRequest{
+		JobTitle:    "Senior Engineer",
+		CompanyName: "Stripe",
+	})
+
+	require.NoError(t, err)
+	assert.True(t, updated.Reported)
+}
+
+func TestJobStore_Create_InheritsReported(t *testing.T) {
+	ctx := context.Background()
+	userID := uuid.New()
+
+	existing := createForCompany(t, userID, "Stripe")
+	require.NoError(t, testStore.SetReported(ctx, mustParseUUID(t, existing.ID), userID, true))
+
+	sameCompany := createForCompany(t, userID, "stripe")
+	differentCompany := createForCompany(t, userID, "Other Co")
+
+	assert.True(t, sameCompany.Reported)
+	assert.False(t, differentCompany.Reported)
+}
+
+func TestJobStore_ListCompanies(t *testing.T) {
+	ctx := context.Background()
+	userID := uuid.New()
+
+	createForCompany(t, userID, "beta")
+	createForCompany(t, userID, "Acme")
+	createForCompany(t, userID, "acme")
+	createForCompany(t, uuid.New(), "Gamma")
+
+	companies, err := testStore.ListCompanies(ctx, userID)
+
+	require.NoError(t, err)
+	require.Len(t, companies, 2)
+	assert.Equal(t, "acme", strings.ToLower(companies[0]))
+	assert.Equal(t, "beta", companies[1])
+}
+
+func TestJobStore_ListCompanies_Empty(t *testing.T) {
+	ctx := context.Background()
+
+	companies, err := testStore.ListCompanies(ctx, uuid.New())
+
+	require.NoError(t, err)
+	assert.Equal(t, []string{}, companies)
 }
 
 func TestJobStore_Delete(t *testing.T) {

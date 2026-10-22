@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -16,6 +18,9 @@ var (
 	ErrNotFound         = errors.New("job not found")
 	ErrInvalidRecruiter = errors.New("invalid recruiter_id")
 )
+
+// Case-insensitive; must match the userId+companyName index collation in db_connection
+var companyCollation = &options.Collation{Locale: "en", Strength: 2}
 
 type jobDoc struct {
 	ID                string     `bson:"_id"`
@@ -34,6 +39,7 @@ type jobDoc struct {
 	Comments          []string   `bson:"comments"`
 	Status            string     `bson:"status"`
 	Archived          bool       `bson:"archived"`
+	Reported          bool       `bson:"reported"`
 	PrimaryLink       string     `bson:"primaryLink"`
 	PrimaryLinkText   string     `bson:"primaryLinkText"`
 	SecondaryLink     string     `bson:"secondaryLink"`
@@ -69,6 +75,7 @@ func (d jobDoc) toDomain() Job {
 		Comments:          comments,
 		Status:            d.Status,
 		Archived:          d.Archived,
+		Reported:          d.Reported,
 		PrimaryLink:       d.PrimaryLink,
 		PrimaryLinkText:   d.PrimaryLinkText,
 		SecondaryLink:     d.SecondaryLink,
@@ -117,6 +124,15 @@ func (s *Store) Create(ctx context.Context, userID uuid.UUID, req CreateJobReque
 		status = "applied"
 	}
 
+	reportedCount, err := s.col.CountDocuments(ctx, bson.D{
+		{Key: "userId", Value: userID.String()},
+		{Key: "companyName", Value: req.CompanyName},
+		{Key: "reported", Value: true},
+	}, options.Count().SetCollation(companyCollation).SetLimit(1))
+	if err != nil {
+		return Job{}, fmt.Errorf("check company reported: %w", err)
+	}
+
 	now := time.Now().UTC()
 	doc := jobDoc{
 		ID:                id.String(),
@@ -135,6 +151,7 @@ func (s *Store) Create(ctx context.Context, userID uuid.UUID, req CreateJobReque
 		Comments:          []string{},
 		Status:            status,
 		Archived:          false,
+		Reported:          reportedCount > 0,
 		PrimaryLink:       req.PrimaryLink,
 		PrimaryLinkText:   req.PrimaryLinkText,
 		SecondaryLink:     req.SecondaryLink,
@@ -285,6 +302,44 @@ func (s *Store) Update(ctx context.Context, id, userID uuid.UUID, req UpdateJobR
 	}
 
 	return doc.toDomain(), nil
+}
+
+// SetReported applies the reported flag to every job the user has at the same company as the given job.
+func (s *Store) SetReported(ctx context.Context, id, userID uuid.UUID, reported bool) error {
+	j, err := s.GetByID(ctx, id, userID)
+	if err != nil {
+		return err
+	}
+
+	_, err = s.col.UpdateMany(ctx, bson.D{
+		{Key: "userId", Value: userID.String()},
+		{Key: "companyName", Value: j.CompanyName},
+	}, bson.D{{Key: "$set", Value: bson.D{
+		{Key: "reported", Value: reported},
+		{Key: "updatedAt", Value: time.Now().UTC()},
+	}}}, options.UpdateMany().SetCollation(companyCollation))
+	if err != nil {
+		return fmt.Errorf("set reported: %w", err)
+	}
+	return nil
+}
+
+func (s *Store) ListCompanies(ctx context.Context, userID uuid.UUID) ([]string, error) {
+	var companies []string
+	err := s.col.Distinct(ctx, "companyName",
+		bson.D{{Key: "userId", Value: userID.String()}},
+		options.Distinct().SetCollation(companyCollation),
+	).Decode(&companies)
+	if err != nil {
+		return nil, fmt.Errorf("list companies: %w", err)
+	}
+	if companies == nil {
+		companies = []string{}
+	}
+	slices.SortFunc(companies, func(a, b string) int {
+		return strings.Compare(strings.ToLower(a), strings.ToLower(b))
+	})
+	return companies, nil
 }
 
 func (s *Store) CountByUser(ctx context.Context, userID uuid.UUID) (int64, error) {
