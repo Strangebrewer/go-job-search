@@ -39,15 +39,15 @@ func Load() *Config {
 	}
 
 	return &Config{
-		Port:                            os.Getenv("PORT"),
-		DatabaseURL:                     os.Getenv("DATABASE_URL"),
-		DBName:                          dbName,
-		JWTPublicKey:                    os.Getenv("JWT_PUBLIC_KEY"),
-		AllowedOrigins:                  parseOrigins(os.Getenv("ALLOWED_ORIGINS")),
-		TracerURL:                       os.Getenv("TRACER_SERVICE_URL"),
-		TracerServiceKey:                os.Getenv("TRACER_SERVICE_KEY"),
-		PubSubProjectID: os.Getenv("PUBSUB_PROJECT_ID"),
-		PubSubAudience:  os.Getenv("PUBSUB_AUDIENCE"),
+		Port:             os.Getenv("PORT"),
+		DatabaseURL:      os.Getenv("DATABASE_URL"),
+		DBName:           dbName,
+		JWTPublicKey:     os.Getenv("JWT_PUBLIC_KEY"),
+		AllowedOrigins:   parseOrigins(os.Getenv("ALLOWED_ORIGINS")),
+		TracerURL:        os.Getenv("TRACER_SERVICE_URL"),
+		TracerServiceKey: os.Getenv("TRACER_SERVICE_KEY"),
+		PubSubProjectID:  os.Getenv("PUBSUB_PROJECT_ID"),
+		PubSubAudience:   os.Getenv("PUBSUB_AUDIENCE"),
 		PubSubInterviewScheduledTopicID: func() string {
 			if v := os.Getenv("PUBSUB_TOPIC_INTERVIEW_SCHEDULED"); v != "" {
 				return v

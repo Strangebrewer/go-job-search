@@ -19,6 +19,7 @@ type Job struct {
 	Comments          []string   `json:"comments"`
 	Status            string     `json:"status"`
 	Archived          bool       `json:"archived"`
+	Reported          bool       `json:"reported"`
 	PrimaryLink       string     `json:"primaryLink"`
 	PrimaryLinkText   string     `json:"primaryLinkText"`
 	SecondaryLink     string     `json:"secondaryLink"`
@@ -65,6 +66,10 @@ type UpdateJobRequest struct {
 	PrimaryLinkText   string   `json:"primaryLinkText"`
 	SecondaryLink     string   `json:"secondaryLink"`
 	SecondaryLinkText string   `json:"secondaryLinkText"`
+}
+
+type SetReportedRequest struct {
+	Reported bool `json:"reported"`
 }
 
 type JobFilter struct {

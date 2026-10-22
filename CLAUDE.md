@@ -60,7 +60,7 @@ Four-file pattern: `<domain>_model.go`, `_store.go`, `_handler.go`, `_routes.go`
 - `db_connection.Connect()` returns `(*mongo.Client, *mongo.Database)`; indexes created at startup
 - Store pattern: private `<domain>Doc` struct with `bson` tags in `_store.go`; exported domain type with `json` tags in `_model.go`; `toDomain()` converts between them
 - IDs stored as UUID v7 strings (`uuid.NewV7().String()`)
-- Recruiter existence validated in `job.Store.Create` by counting documents in the recruiters collection (existence only — not ownership, matching the original FK constraint behavior)
+- `recruiterId` is optional on jobs. When non-empty, `job.Store.Create` validates it exists in the recruiters collection (existence only — not ownership). `job.Store.Update` validates UUID format only (no existence check) when non-empty.
 - `recruiter.Store.Delete` checks the jobs collection before removing to enforce `ErrHasJobs`
 
 ### Logging
@@ -83,14 +83,14 @@ Integration tests via testcontainers — real MongoDB (`mongo:6`), no mocks. `Te
 
 ## Environment Variables
 
-| Variable | Description |
-|---|---|
-| `PORT` | HTTP port (defaults to 8080) |
-| `DATABASE_URL` | MongoDB Atlas URI (`mongodb+srv://user:pass@cluster.mongodb.net/`) — database name `job_search` is hardcoded in `db_connection` |
-| `JWT_PUBLIC_KEY` | RSA public key PEM for validating JWTs issued by go-auth |
-| `ALLOWED_ORIGINS` | Comma-separated list of allowed CORS origins |
-| `TRACER_SERVICE_URL` | go-tracer service URL (optional) |
-| `TRACER_SERVICE_KEY` | go-tracer auth key (optional) |
+| Variable             | Description                                                                                                                     |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `PORT`               | HTTP port (defaults to 8080)                                                                                                    |
+| `DATABASE_URL`       | MongoDB Atlas URI (`mongodb+srv://user:pass@cluster.mongodb.net/`) — database name `job_search` is hardcoded in `db_connection` |
+| `JWT_PUBLIC_KEY`     | RSA public key PEM for validating JWTs issued by go-auth                                                                        |
+| `ALLOWED_ORIGINS`    | Comma-separated list of allowed CORS origins                                                                                    |
+| `TRACER_SERVICE_URL` | go-tracer service URL (optional)                                                                                                |
+| `TRACER_SERVICE_KEY` | go-tracer auth key (optional)                                                                                                   |
 
 Copy `.env.example` to `.env.local` for local dev. Never commit `.env.local`.
 
